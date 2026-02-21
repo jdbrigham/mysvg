@@ -265,16 +265,16 @@ const SILHOUETTE_FILE = 'silhouette.png';
 // Vertical nudge in pixels after bottom-anchoring:
 //   Positive → image shifts DOWN (more sky visible above the ridge)
 //   Negative → image shifts UP   (ridge appears higher in the frame)
-const SILHOUETTE_OFFSET_Y = 0;
+const SILHOUETTE_OFFSET_Y = -75;
 
 // ── Light-pollution glow ──────────────────────────────────
 // Set to false to disable the glow entirely.
-const SILHOUETTE_GLOW = false;
+const SILHOUETTE_GLOW = true;
 // Vertical offset in pixels to position the glow relative to the ridge.
 //   Positive → glow moves DOWN (below the ridge, more hidden by silhouette)
 //   Negative → glow moves UP   (above the ridge, into the sky)
 // Start at 0 and adjust until the glow sits where you want it.
-const SILHOUETTE_GLOW_OFFSET_Y = 0;
+const SILHOUETTE_GLOW_OFFSET_Y = 350;
 
 // ── Field of view ──────────────────────────────────────────
 // Horizontal degrees of azimuth visible across the full canvas width.
@@ -284,13 +284,13 @@ const SILHOUETTE_GLOW_OFFSET_Y = 0;
 //   14mm lens → ~104°   24mm lens → ~74°   35mm lens → ~54°
 //   50mm lens → ~40°    85mm lens → ~24°   200mm lens → ~10°
 // For APS-C sensors (width ≈ 23.5mm), divide focal length by 0.65 first.
-const FOV_DEG = 110;
+const FOV_DEG = 220;
 
 // ── Compass bearing ────────────────────────────────────────
 // Azimuth (degrees) at the centre of the frame.
 // 0 = North, 90 = East, 180 = South, 270 = West.
 // Match this to your reference photo's compass heading.
-const COMPASS_BEARING = 180;
+const COMPASS_BEARING = 45;
 
 // ═══════════════════════════════════════════════════════════
 
