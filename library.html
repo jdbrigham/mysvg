@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Library</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --sidebar-bg: #1a1a2e;
+      --sidebar-text: #c8c0b0;
+      --sidebar-accent: #e8b86d;
+      --sidebar-hover: rgba(232, 184, 109, 0.12);
+      --sidebar-active: rgba(232, 184, 109, 0.2);
+      --body-text: #2a2420;
+      --heading-color: #1a1a2e;
+      --rule-color: #d0c8b8;
+      --code-bg: #1a1a2e;
+      --code-text: #e8dcc8;
+      --code-accent: #e8b86d;
+      --tag-bg: #e8b86d22;
+      --tag-border: #e8b86d88;
+      --tag-text: #8a6020;
+      --sidebar-width: 260px;
+      --content-max: 780px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--body-text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      scrollbar-width: thin;
+      scrollbar-color: #333 transparent;
+    }
+
+    #sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 2px;
+    }
+
+    .sidebar-header {
+      padding: 28px 22px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .sidebar-header .library-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--sidebar-accent);
+      opacity: 0.8;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-header h1 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 18px;
+      font-weight: 400;
+      color: #f0ece0;
+      line-height: 1.3;
+    }
+
+    .toc-section {
+      padding: 18px 0 8px;
+    }
+
+    .toc-section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(200, 192, 176, 0.4);
+      padding: 0 22px 8px;
+    }
+
+    .toc-entry {
+      display: block;
+      padding: 7px 22px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 400;
+      line-height: 1.4;
+      border-left: 2px solid transparent;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .toc-entry:hover {
+      background: var(--sidebar-hover);
+      color: #f0ece0;
+      border-left-color: rgba(232, 184, 109, 0.4);
+    }
+
+    .toc-entry.active {
+      background: var(--sidebar-active);
+      color: var(--sidebar-accent);
+      border-left-color: var(--sidebar-accent);
+    }
+
+    .toc-entry .entry-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      opacity: 0.4;
+      margin-right: 8px;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 16px 22px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: rgba(200, 192, 176, 0.25);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── MAIN CONTENT ── */
+    #main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 60px 64px 100px;
+    }
+
+    .page-intro {
+      max-width: var(--content-max);
+      margin-bottom: 64px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--rule-color);
+    }
+
+    .page-intro .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sidebar-accent);
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .page-intro h2 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 34px;
+      font-weight: 400;
+      color: var(--heading-color);
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+
+    .page-intro p {
+      font-size: 15px;
+      line-height: 1.75;
+      color: #5a504a;
+      max-width: 520px;
+    }
+
+    /* ── SECTION ── */
+    .kb-section {
+      max-width: var(--content-max);
+      margin-bottom: 72px;
+      scroll-margin-top: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--rule-color);
+    }
+
+    .section-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--sidebar-accent);
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .section-header h2 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--heading-color);
+      line-height: 1.3;
+    }
+
+    .section-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 9px;
+      background: var(--tag-bg);
+      border: 1px solid var(--tag-border);
+      color: var(--tag-text);
+      border-radius: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    .section-body p {
+      font-size: 14.5px;
+      line-height: 1.8;
+      color: #3a3028;
+      margin-bottom: 16px;
+    }
+
+    /* ── STEPS ── */
+    .steps {
+      counter-reset: steps;
+      margin: 24px 0;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 0 16px;
+      margin-bottom: 20px;
+      align-items: start;
+    }
+
+    .step-num {
+      counter-increment: steps;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #fff;
+      background: var(--sidebar-bg);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .step-num::after {
+      content: counter(steps);
+    }
+
+    .step-content {
+      padding-top: 4px;
+    }
+
+    .step-content strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--heading-color);
+      margin-bottom: 5px;
+    }
+
+    .step-content p {
+      font-size: 13.5px;
+      color: #5a504a;
+      line-height: 1.65;
+      margin-bottom: 10px !important;
+    }
+
+    /* ── CODE BLOCKS ── */
+    .code-block {
+      background: var(--code-bg);
+      border-radius: 6px;
+      margin: 14px 0 18px;
+      overflow: hidden;
+    }
+
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .code-lang {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(232, 184, 109, 0.7);
+    }
+
+    .copy-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(200, 192, 176, 0.6);
+      padding: 3px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover {
+      border-color: rgba(232, 184, 109, 0.5);
+      color: var(--sidebar-accent);
+    }
+
+    .copy-btn.copied {
+      border-color: rgba(100, 200, 120, 0.5);
+      color: rgba(100, 200, 120, 0.8);
+    }
+
+    pre {
+      padding: 16px 18px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #333 transparent;
+    }
+
+    pre::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    pre::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    pre::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 2px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--code-text);
+    }
+
+    /* Inline code */
+    p code,
+    li code {
+      background: rgba(26, 26, 46, 0.1);
+      border: 1px solid rgba(26, 26, 46, 0.15);
+      color: #4a3820;
+      font-size: 12px;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    /* Syntax-lite highlighting via spans */
+    .kw {
+      color: #e8b86d;
+    }
+
+    /* keywords */
+    .st {
+      color: #98c89a;
+    }
+
+    /* strings */
+    .cm {
+      color: #6a7a8a;
+      font-style: italic;
+    }
+
+    /* comments */
+    .fn {
+      color: #8ab4d8;
+    }
+
+    /* functions */
+    .nu {
+      color: #c8a0d8;
+    }
+
+    /* numbers */
+
+    /* ── CALLOUT ── */
+    .callout {
+      border-left: 3px solid var(--sidebar-accent);
+      background: rgba(232, 184, 109, 0.07);
+      padding: 12px 16px;
+      border-radius: 0 4px 4px 0;
+      margin: 16px 0;
+    }
+
+    .callout-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #a07830;
+      margin-bottom: 5px;
+    }
+
+    .callout p {
+      font-size: 13.5px !important;
+      color: #5a4828 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      max-width: var(--content-max);
+      border: none;
+      border-top: 1px dashed var(--rule-color);
+      margin: 0 0 72px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      #main {
+        padding: 40px 28px 80px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <div class="library-label">Personal Reference</div>
+      <h1>Knowledge<br>Library</h1>
+    </div>
+
+    <div class="toc-section">
+      <div class="toc-section-label">Contents</div>
+      <!-- Add <a> entries here as you add sections. Copy the pattern below. -->
+      <a class="toc-entry" href="#image-tagging" onclick="setActive(this)">
+        <span class="entry-num">01</span>Image Tagging
+      </a>
+      <a class="toc-entry" href="#monthly-timeline" onclick="setActive(this)">
+        <span class="entry-num">02</span>Timeline
+      </a>
+      <!-- NEW ENTRY TEMPLATE (copy and increment number):
+    <a class="toc-entry" href="#your-section-id" onclick="setActive(this)">
+      <span class="entry-num">03</span>Your Section Title
+    </a>
+    
+    -->
+    </div>
+
+    <div class="sidebar-footer">last updated 2026</div>
+  </nav>
+
+  <!-- ════════════════════════════ MAIN CONTENT ════════════════════════════ -->
+  <main id="main">
+
+    <div class="page-intro">
+      <div class="eyebrow">Reference · Workflows · Code</div>
+      <h2>Personal Knowledge Library</h2>
+      <p>Step-by-step guides, reusable scripts, and reference notes for recurring tasks. Each section includes context,
+        numbered steps, and copyable code blocks.</p>
+    </div>
+
+    <!-- ──────────────────────────────────────────────
+       SECTION: IMAGE TAGGING
+       id must match the href in the TOC entry above
+  ─────────────────────────────────────────────── -->
+    <section class="kb-section" id="image-tagging">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>Image Tagging</h2>
+      </div>
+
+      <div class="section-tags">
+        <span class="tag">python</span>
+        <span class="tag">exiftool</span>
+        <span class="tag">metadata</span>
+        <!-- Add or remove tags as relevant -->
+      </div>
+
+      <div class="section-body">
+        <p>use this workflow to apply Finder tags to image, in bulk from a source .csv file</p>
+
+        <div class="steps">
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Test: Running the script</strong>
+              <p>Explain what this step does and why.</p>
+              <div class="code-block">
+                <div class="code-block-header">
+                  <span class="code-lang">bash</span>
+                  <button class="copy-btn" onclick="copyCode(this)">copy</button>
+                </div>
+                <pre><code><span class="cm"># Your command here</span>
+python3.10 apply-tags.py | tee output.log</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Step two title</strong>
+              <p>Explain what this step does and why.</p>
+              <div class="code-block">
+                <div class="code-block-header">
+                  <span class="code-lang">python</span>
+                  <button class="copy-btn" onclick="copyCode(this)">copy</button>
+                </div>
+                <pre><code><span class="kw">import</span> os
+
+<span class="cm"># Your script here</span>
+<span class="kw">for</span> f <span class="kw">in</span> <span class="fn">os.listdir</span>(<span class="st">"."</span>):
+    <span class="fn">print</span>(f)</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Step three title</strong>
+              <p>Add as many steps as you need by duplicating the <code>.step</code> block above.</p>
+              <div class="callout">
+                <div class="callout-label">Note</div>
+                <p>Use a callout block like this for tips, warnings, or important caveats.</p>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /steps -->
+      </div><!-- /section-body -->
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ──────────────────────────────────────────────
+       SECTION TEMPLATE — duplicate this entire block
+       for each new section. Update:
+         • section id  (must match TOC href)
+         • section-num span
+         • h2 title
+         • tags
+         • body content / steps / code
+  ─────────────────────────────────────────────── -->
+    <section class="kb-section" id="monthly-timeline">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Acquire and display a monthly Google timelne animation</h2>
+      </div>
+
+      <div class="section-tags">
+        <span class="tag">template</span>
+      </div>
+
+      <div class="section-body">
+        <p>This is a blank template section. Duplicate it to add a new topic. Update the <code>id</code> on the
+          <code>&lt;section&gt;</code> element and add a matching entry in the sidebar TOC.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Download full Google timeline json</strong>
+              <p>Download full Google timeline json</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Second step with code</strong>
+              <p>Description, then a code block below.</p>
+              <div class="code-block">
+                <div class="code-block-header">
+                  <span class="code-lang">bash</span>
+                  <button class="copy-btn" onclick="copyCode(this)">copy</button>
+                </div>
+                <pre><code>echo "replace me"</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kb-section" id="section-template">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Section Template</h2>
+      </div>
+
+      <div class="section-tags">
+        <span class="tag">template</span>
+      </div>
+
+      <div class="section-body">
+        <p>This is a blank template section. Duplicate it to add a new topic. Update the <code>id</code> on the
+          <code>&lt;section&gt;</code> element and add a matching entry in the sidebar TOC.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>First step</strong>
+              <p>Description of first step.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num"></div>
+            <div class="step-content">
+              <strong>Second step with code</strong>
+              <p>Description, then a code block below.</p>
+              <div class="code-block">
+                <div class="code-block-header">
+                  <span class="code-lang">bash</span>
+                  <button class="copy-btn" onclick="copyCode(this)">copy</button>
+                </div>
+                <pre><code>echo "replace me"</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add more sections above this comment -->
+
+  </main>
+
+  <script>
+    // ── Copy to clipboard ──
+    function copyCode(btn) {
+      const pre = btn.closest('.code-block').querySelector('pre');
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'copy';
+          btn.classList.remove('copied');
+        }, 1800);
+      });
+    }
+
+    // ── Active TOC state ──
+    function setActive(el) {
+      document.querySelectorAll('.toc-entry').forEach(e => e.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    // ── Scroll spy: highlight TOC entry based on scroll position ──
+    const sections = document.querySelectorAll('.kb-section');
+    const tocLinks = document.querySelectorAll('.toc-entry');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          tocLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(s => observer.observe(s));
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="920"
+   height="64"
+   viewBox="0 0 920 64"
+   aria-label="Process flow"
+   version="1.1"
+   id="svg16"
+   sodipodi:docname="elements.svg"
+   inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs16">
+    <defs
+       id="defs3">
+      <!-- Chevron segment: 220×64 viewBox makes layout easy -->
+      <symbol
+         id="chevron-segment"
+         viewBox="0 0 220 64">
+        <!-- outer chevron outline -->
+        <path
+           d="M16 4 H180 l24 28 -24 28 H16 L0 32 Z"
+           fill="var(--step-fill)"
+           stroke="var(--step-stroke)"
+           stroke-width="8"
+           stroke-linejoin="round"
+           id="path1" />
+        <!-- inner hollow to give that “chain” effect like your reference -->
+        <path
+           d="M28 16 H168 l16 16 -16 16 H28 L16 32 Z"
+           fill="#fff"
+           stroke="none"
+           id="path2" />
+        <!-- label area centered -->
+        <text
+           class="step-label"
+           x="110"
+           y="32"
+           id="text2">Step</text>
+      </symbol>
+      <symbol
+         id="box-step"
+         viewBox="0 0 200 80">
+        <rect
+           x="4"
+           y="4"
+           width="192"
+           height="72"
+           rx="12"
+           ry="12"
+           fill="var(--step-fill)"
+           stroke="var(--step-stroke)"
+           stroke-width="8"
+           id="rect2" />
+        <text
+           class="step-label"
+           x="100"
+           y="40"
+           id="text3">Label</text>
+      </symbol>
+      <symbol
+         id="dot"
+         viewBox="0 0 24 24">
+        <circle
+           cx="12"
+           cy="12"
+           r="8"
+           fill="var(--step-stroke)"
+           id="circle3" />
+      </symbol>
+    </defs>
+  </defs>
+  <sodipodi:namedview
+     id="namedview16"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.3358614"
+     inkscape:cx="154.82577"
+     inkscape:cy="-16.375803"
+     inkscape:window-width="1408"
+     inkscape:window-height="804"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg16" />
+  <use
+     href="#chevron-segment"
+     x="0"
+     id="use3"
+     transform="translate(-106.07226,161.84221)" />
+  <use
+     href="#chevron-segment"
+     x="230"
+     id="use4"
+     transform="translate(-99.511086,164.02926)" />
+  <use
+     href="#chevron-segment"
+     x="460"
+     id="use5"
+     transform="translate(-76.546989,172.77749)" />
+  <use
+     href="#chevron-segment"
+     x="690"
+     id="use6"
+     transform="translate(-71.449723,177.47189)" />
+  <g
+     id="g7"
+     transform="translate(214.33157,-178.24513)">
+    <use
+       href="#box-step"
+       id="use7" />
+    <text
+       class="step-label"
+       x="100"
+       y="40"
+       id="text7">Plan</text>
+  </g>
+  <g
+     transform="translate(215.62589,-263.54035)"
+     id="g8">
+    <use
+       href="#box-step"
+       id="use8" />
+    <text
+       class="step-label"
+       x="100"
+       y="40"
+       id="text8">Build</text>
+  </g>
+  <g
+     transform="translate(210.35903,-335.71322)"
+     id="g9">
+    <use
+       href="#box-step"
+       id="use9" />
+    <text
+       class="step-label"
+       x="100"
+       y="40"
+       id="text9">Test</text>
+  </g>
+  <g
+     transform="translate(212.86303,-421.78385)"
+     id="g10">
+    <use
+       href="#box-step"
+       id="use10" />
+    <text
+       class="step-label"
+       x="100"
+       y="40"
+       id="text10">Ship</text>
+  </g>
+  <path
+     d="M 40,60 H 680"
+     stroke="var(--step-stroke)"
+     stroke-width="6"
+     stroke-linecap="round"
+     fill="none"
+     id="path10" />
+  <g
+     transform="translate(-371.69969,-424.51281)"
+     id="g11">
+    <use
+       href="#dot"
+       id="use11" />
+    <text
+       class="step-label"
+       x="0"
+       y="-24"
+       id="text11">Kickoff</text>
+  </g>
+  <g
+     transform="translate(-373.75763,-329.44822)"
+     id="g12">
+    <use
+       href="#dot"
+       id="use12" />
+    <text
+       class="step-label"
+       x="0"
+       y="-24"
+       id="text12">Spec</text>
+  </g>
+  <g
+     transform="translate(-374.65646,-216.33867)"
+     id="g13">
+    <use
+       href="#dot"
+       id="use13" />
+    <text
+       class="step-label"
+       x="0"
+       y="-24"
+       id="text13">Dev</text>
+  </g>
+  <g
+     transform="translate(-378.10067,-115.23915)"
+     id="g14">
+    <use
+       href="#dot"
+       id="use14" />
+    <text
+       class="step-label"
+       x="0"
+       y="-24"
+       id="text14">QA</text>
+  </g>
+  <g
+     transform="translate(-379.96104,-32.299978)"
+     id="g15">
+    <use
+       href="#dot"
+       id="use15" />
+    <text
+       class="step-label"
+       x="0"
+       y="-24"
+       id="text15">Launch</text>
+  </g>
+</svg>

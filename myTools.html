@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Whiteboard</title>
+  <style>
+    :root {
+      --board-bg: #f7f8fa;
+      --grid-color: #e6e8ef;
+      --card-bg: #ffffff;
+      --card-border: #d5d7df;
+      --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+      --accent: #2563eb;
+      --text: #111827;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: #fff;
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    .toolbar {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: inline-flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      z-index: 1000;
+      backdrop-filter: blur(6px);
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      transition: transform 0.05s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn:hover {
+      background: #f9fafb;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.toggle.active {
+      background: #e0ecff;
+      border-color: #b7d3ff;
+      color: #1147b7;
+    }
+
+    .zoom-readout {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      border: 1px dashed #e5e7eb;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-variant-numeric: tabular-nums;
+      background: #fff;
+    }
+
+    /* Board wrapper fills viewport */
+    .board-wrapper {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: var(--board-bg);
+      /* light infinite grid */
+      background-image:
+        linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+      background-size: 48px 48px;
+      touch-action: none;
+      /* we'll manage touch gestures */
+      cursor: grab;
+    }
+
+    .board-wrapper.panning {
+      cursor: grabbing;
+    }
+
+    /* Board is the transform target (pan/zoom) */
+    .board {
+      position: absolute;
+      width: 100000px;
+      height: 100000px;
+      left: 0;
+      /* FIX: start at 0,0 (don’t offset -50000) */
+      top: 0;
+      transform-origin: 0 0;
+    }
+
+    /* Card styling */
+    .card {
+      position: absolute;
+      width: 260px;
+      min-height: 120px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      box-shadow: var(--card-shadow);
+      padding: 12px 12px 16px;
+      user-select: none;
+      /* drag-friendly */
+      touch-action: none;
+      cursor: grab;
+    }
+
+    /* --- Note Cards --------------------------------------------------- */
+
+    .note-card {
+      position: absolute;
+      width: 180px;
+      /* narrower, more vertical */
+      min-height: 260px;
+      /* taller than regular cards */
+      background: #fffbe8;
+      /* light yellow note-paper background */
+      border: 1px solid #e8dca8;
+      border-radius: 10px;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.06);
+      padding: 12px 14px 18px;
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+
+      /* subtle lined‑paper effect */
+      background-image:
+        repeating-linear-gradient(to bottom,
+          #fffbe8 0px,
+          #fffbe8 24px,
+          #f1e7bb 25px
+          /* the thin horizontal line */
+        );
+    }
+
+    .note-card:active {
+      cursor: grabbing;
+    }
+
+    .note-card h4 {
+      margin: 4px 0 6px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #7a6220;
+    }
+
+    .note-card .body {
+      font-size: 13px;
+      line-height: 1.35;
+      color: #6a5e32;
+      user-select: text;
+    }
+
+
+    .card:active {
+      cursor: grabbing;
+    }
+
+    .card h3 {
+      margin: 6px 0 8px;
+      font-size: 16px;
+    }
+
+    .card .body {
+      font-size: 14px;
+      line-height: 1.35;
+      color: #374151;
+      user-select: text;
+      /* allow text selection inside */
+    }
+
+    /* helpful subtle anchor crosshair at (0,0) of board */
+    .origin-marker {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      transform: translate(-12px, -12px);
+      pointer-events: none;
+      opacity: 0.25;
+    }
+
+    .origin-marker::before,
+    .origin-marker::after {
+      content: "";
+      position: absolute;
+      background: #6b7280;
+    }
+
+    .origin-marker::before {
+      width: 24px;
+      height: 1px;
+      left: 0;
+      top: 50%;
+    }
+
+    .origin-marker::after {
+      width: 1px;
+      height: 24px;
+      left: 50%;
+      top: 0;
+    }
+
+    /* --- Procedural Diagram: shared styles --- */
+    .flow,
+    .segment {
+      position: absolute;
+      /* draggable via your existing pointer logic */
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .flow:active,
+    .segment:active {
+      cursor: grabbing;
+    }
+
+    .flow svg,
+    .segment svg {
+      display: block;
+    }
+
+    /* optional color tokens */
+    :root {
+      --step-stroke: #111;
+      --step-fill: #fff;
+      --step-label: #111;
+    }
+
+    /* label text in segments */
+    .step-label {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-size: 14px;
+      fill: var(--step-label);
+      dominant-baseline: middle;
+      text-anchor: middle;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="toolbar" aria-label="Whiteboard toolbar">
+    <button class="btn" data-action="zoom-out" title="Zoom out">−</button>
+    <div class="zoom-readout" id="zoomReadout">100%</div>
+    <button class="btn" data-action="zoom-in" title="Zoom in">+</button>
+    <button class="btn" data-action="reset" title="Reset view">Reset</button>
+    <button class="btn toggle" id="panToggle" title="Toggle pan mode">Pan</button>
+  </div>
+
+  <div class="board-wrapper" id="boardWrapper">
+    <div class="board" id="board">
+      <div class="origin-marker" aria-hidden="true"></div>
+
+      <!-- Six starter cards -->
+      <div class="card" style="left: -600px; top: -300px;">
+        <h3>Tool: The Idea Wall</h3>
+        <div class="body">Purpose: To capture an organize ideas, potentially to indicate milestone status</div>
+      </div>
+
+      <div class="card" style="left: -600px; top: -125px;">
+        <h3>Tool: The Version Tracker</h3>
+        <div class="body">Purpose: Allows for visually detailing version iterations for several different project ideas
+        </div>
+      </div>
+
+      <div class="card" style="left: -600px; top: 40px;">
+        <h3>Tool: GitHub Kanban Board</h3>
+        <div class="body">Purpose: Allows for status tracking through stages</div>
+      </div>
+
+      <div class="card" style="left: -230px; top: -300px;">
+        <h3>Tool: Apple Reminders</h3>
+        <div class="body">Purpose: Track completion of specific and finite tasks.</div>
+      </div>
+
+      <div class="card" style="left: -230px; top: -125px;">
+        <h3>Tool: All Projects' Page</h3>
+        <div class="body">Purpose: Track higher-level status of larger projects</div>
+      </div>
+
+      <div class="card" style="left: -230px; top: 40px;">
+        <h3>Tool: Daily Progress Form</h3>
+        <div class="body">Purpose: agile-like way to track daily progress and intent.</div>
+      </div>
+    </div>
+
+    <div class="note-card" style="left: 1000px; top: 80px; transform: rotate(-12deg);">
+      <h4>Notes</h4>
+      <div class="body">
+        Think of this as a way to track an idea/project from question or concept, through ideation and refining, to
+        initial stability and beyond. Each tool should be clear in its purpose and true to that intention.
+      </div>
+    </div>
+
+    <!-- A draggable flow, positioned on the board (chevron) -->
+    <div class="flow" style="left: 200px; top: 920px;">
+      <svg width="920" height="64" viewBox="0 0 920 64" aria-label="Process flow">
+        <!-- Repeat chevrons every 230px (220 width + 10 gap) -->
+        <use href="#chevron-segment" x="0"></use>
+        <use href="#chevron-segment" x="230"></use>
+        <use href="#chevron-segment" x="460"></use>
+        <use href="#chevron-segment" x="690"></use>
+      </svg>
+    </div>
+
+    <!-- A draggable flow, positioned on the board (boxes) -->
+    <div class="flow" style="left: 160px; top: 320px;">
+      <svg width="860" height="80" viewBox="0 0 860 80">
+        <g transform="translate(0,0)">
+          <use href="#box-step" /><text class="step-label" x="100" y="40">Plan</text>
+        </g>
+        <g transform="translate(220,0)">
+          <use href="#box-step" /><text class="step-label" x="100" y="40">Build</text>
+        </g>
+        <g transform="translate(440,0)">
+          <use href="#box-step" /><text class="step-label" x="100" y="40">Test</text>
+        </g>
+        <g transform="translate(660,0)">
+          <use href="#box-step" /><text class="step-label" x="100" y="40">Ship</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- A draggable flow, positioned on the board (line) -->
+    <div class="flow" style="left: 120px; top: 460px;">
+      <svg width="720" height="120" viewBox="0 0 720 120">
+        <!-- connector -->
+        <path d="M 40 60 L 680 60" stroke="var(--step-stroke)" stroke-width="6" stroke-linecap="round" fill="none" />
+        <!-- dots + labels -->
+        <g transform="translate( 40,60)">
+          <use href="#dot" /><text class="step-label" x="0" y="-24">Kickoff</text>
+        </g>
+        <g transform="translate(200,60)">
+          <use href="#dot" /><text class="step-label" x="0" y="-24">Spec</text>
+        </g>
+        <g transform="translate(360,60)">
+          <use href="#dot" /><text class="step-label" x="0" y="-24">Dev</text>
+        </g>
+        <g transform="translate(520,60)">
+          <use href="#dot" /><text class="step-label" x="0" y="-24">QA</text>
+        </g>
+        <g transform="translate(680,60)">
+          <use href="#dot" /><text class="step-label" x="0" y="-24">Launch</text>
+        </g>
+      </svg>
+    </div>
+
+
+
+    <!-- Reusable diagram symbols -->
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <!-- Chevron segment: 220×64 viewBox makes layout easy -->
+        <symbol id="chevron-segment" viewBox="0 0 220 64">
+          <!-- outer chevron outline -->
+          <path d="M16 4 H180 l24 28 -24 28 H16 L0 32 Z" fill="var(--step-fill)" stroke="var(--step-stroke)"
+            stroke-width="8" stroke-linejoin="round" />
+          <!-- inner hollow to give that “chain” effect like your reference -->
+          <path d="M28 16 H168 l16 16 -16 16 H28 L16 32 Z" fill="#fff" stroke="none" />
+          <!-- label area centered -->
+          <text class="step-label" x="110" y="32">Step</text>
+        </symbol>
+        <symbol id="box-step" viewBox="0 0 200 80">
+          <rect x="4" y="4" width="192" height="72" rx="12" ry="12" fill="var(--step-fill)" stroke="var(--step-stroke)"
+            stroke-width="8" />
+          <text class="step-label" x="100" y="40">Label</text>
+        </symbol>
+        <symbol id="dot" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" fill="var(--step-stroke)" />
+        </symbol>
+      </defs>
+    </svg>
+
+  </div>
+  </div>
+
+  <script>
+    (() => {
+      const wrapper = document.getElementById('boardWrapper');
+      const board = document.getElementById('board');
+      const readout = document.getElementById('zoomReadout');
+      const panToggleBtn = document.getElementById('panToggle');
+
+      // View transform state
+      let scale = 1;                    // zoom
+      let tx = window.innerWidth / 2;   // translate X (so 0,0 sits near center initially)
+      let ty = window.innerHeight / 2;  // translate Y
+
+      const MIN_SCALE = 0.25;
+      const MAX_SCALE = 3;
+      const ZOOM_STEP = 1.1; // button zoom factor
+
+      function applyTransform() {
+        board.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        readout.textContent = `${Math.round(scale * 100)}%`;
+      }
+
+      // Center (0,0) in view on load
+      applyTransform();
+
+      // --- Helpers: convert screen coords to board coords
+      function screenToBoard(x, y) {
+        return { x: (x - tx) / scale, y: (y - ty) / scale };
+      }
+
+      // --- Zooming (mouse wheel / trackpad)
+      wrapper.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        const rect = wrapper.getBoundingClientRect();
+        const pointerX = e.clientX - rect.left;
+        const pointerY = e.clientY - rect.top;
+
+        const before = screenToBoard(pointerX, pointerY);
+        const delta = -e.deltaY;
+        const factor = Math.exp(delta * 0.0015); // smooth exponential zoom
+        const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+
+        // Adjust translate so the point under cursor stays fixed
+        tx = pointerX - (before.x * newScale);
+        ty = pointerY - (before.y * newScale);
+
+        scale = newScale;
+        applyTransform();
+      }, { passive: false });
+
+      // --- Toolbar controls
+      document.querySelector('.toolbar').addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        if (action === 'zoom-in' || action === 'zoom-out') {
+          const rect = wrapper.getBoundingClientRect();
+          const cx = rect.width / 2;
+          const cy = rect.height / 2;
+          const before = screenToBoard(cx, cy);
+          const factor = action === 'zoom-in' ? ZOOM_STEP : (1 / ZOOM_STEP);
+          const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+          tx = cx - (before.x * newScale);
+          ty = cy - (before.y * newScale);
+          scale = newScale;
+          applyTransform();
+        } else if (action === 'reset') {
+          scale = 1;
+          tx = window.innerWidth / 2;
+          ty = window.innerHeight / 2;
+          applyTransform();
+        }
+      });
+
+      // Pan toggle
+      let forcePanning = false;
+      panToggleBtn.addEventListener('click', () => {
+        forcePanning = !forcePanning;
+        panToggleBtn.classList.toggle('active', forcePanning);
+      });
+
+      // --- Panning (drag empty space or when Pan toggle is on)
+      let isPanning = false;
+      let panStart = { x: 0, y: 0 };
+      let panOrigin = { tx: 0, ty: 0 };
+
+      function shouldPan(target) {
+        const isCard = target.closest && target.closest('.card');
+        return forcePanning || !isCard;
+      }
+
+      wrapper.addEventListener('pointerdown', (e) => {
+        if (!shouldPan(e.target)) return;
+        wrapper.setPointerCapture(e.pointerId);
+        isPanning = true;
+        panStart.x = e.clientX;
+        panStart.y = e.clientY;
+        panOrigin.tx = tx;
+        panOrigin.ty = ty;
+        wrapper.classList.add('panning');
+      });
+
+      wrapper.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        const dx = e.clientX - panStart.x;
+        const dy = e.clientY - panStart.y;
+        tx = panOrigin.tx + dx;
+        ty = panOrigin.ty + dy;
+        applyTransform();
+      });
+
+      wrapper.addEventListener('pointerup', (e) => {
+        if (!isPanning) return;
+        isPanning = false;
+        wrapper.releasePointerCapture(e.pointerId);
+        wrapper.classList.remove('panning');
+      });
+
+      // --- Card dragging (positions are stored in board-space px)
+      const cards = Array.from(document.querySelectorAll('.card'));
+      const dragState = new WeakMap(); // per-card drag info
+
+      cards.forEach(card => {
+        card.addEventListener('pointerdown', (e) => {
+          if (forcePanning) return; // pan mode wins
+
+          card.setPointerCapture(e.pointerId);
+          card.style.transition = 'none';
+
+          const startLeft = parseFloat(card.style.left || '0');
+          const startTop = parseFloat(card.style.top || '0');
+
+          const rect = wrapper.getBoundingClientRect();
+          const boardPt = screenToBoard(e.clientX - rect.left, e.clientY - rect.top);
+
+          dragState.set(card, {
+            dragging: true,
+            startLeft,
+            startTop,
+            startBoardX: boardPt.x,
+            startBoardY: boardPt.y
+          });
+
+          e.stopPropagation(); // prevent starting a pan
+        });
+
+        card.addEventListener('pointermove', (e) => {
+          const state = dragState.get(card);
+          if (!state || !state.dragging) return;
+
+          const rect = wrapper.getBoundingClientRect();
+          const boardPt = screenToBoard(e.clientX - rect.left, e.clientY - rect.top);
+
+          const dx = boardPt.x - state.startBoardX;
+          const dy = boardPt.y - state.startBoardY;
+
+          card.style.left = `${state.startLeft + dx}px`;
+          card.style.top = `${state.startTop + dy}px`;
+        });
+
+        card.addEventListener('pointerup', (e) => {
+          const state = dragState.get(card);
+          if (!state) return;
+          state.dragging = false;
+          card.releasePointerCapture(e.pointerId);
+        });
+      });
+
+      // --- Basic pinch zoom for touch (two-finger)
+      let pinch = { active: false, startDist: 0, startScale: 1, centerX: 0, centerY: 0, startTx: 0, startTy: 0, before: { x: 0, y: 0 } };
+      function dist(a, b) {
+        const dx = a.clientX - b.clientX;
+        const dy = a.clientY - b.clientY;
+        return Math.hypot(dx, dy);
+      }
+
+      const activeTouches = new Map();
+      wrapper.addEventListener('pointerdown', (e) => {
+        activeTouches.set(e.pointerId, e);
+      });
+      wrapper.addEventListener('pointermove', (e) => {
+        if (activeTouches.has(e.pointerId)) activeTouches.set(e.pointerId, e);
+
+        if (activeTouches.size === 2) {
+          const [p1, p2] = Array.from(activeTouches.values());
+          if (!pinch.active) {
+            pinch.active = true;
+            pinch.startDist = dist(p1, p2);
+            pinch.startScale = scale;
+
+            const rect = wrapper.getBoundingClientRect();
+            pinch.centerX = ((p1.clientX + p2.clientX) / 2) - rect.left;
+            pinch.centerY = ((p1.clientY + p2.clientY) / 2) - rect.top;
+            pinch.before = screenToBoard(pinch.centerX, pinch.centerY);
+            pinch.startTx = tx;
+            pinch.startTy = ty;
+          } else {
+            const newDist = dist(p1, p2);
+            const rawScale = pinch.startScale * (newDist / pinch.startDist);
+            const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, rawScale));
+
+            // keep pinch center stable
+            tx = pinch.centerX - pinch.before.x * newScale;
+            ty = pinch.centerY - pinch.before.y * newScale;
+
+            scale = newScale;
+            applyTransform();
+          }
+        } else if (activeTouches.size < 2) {
+          pinch.active = false;
+        }
+      });
+      wrapper.addEventListener('pointerup', (e) => {
+        activeTouches.delete(e.pointerId);
+        if (activeTouches.size < 2) pinch.active = false;
+      });
+      wrapper.addEventListener('pointercancel', (e) => {
+        activeTouches.delete(e.pointerId);
+        if (activeTouches.size < 2) pinch.active = false;
+      });
+
+      // Keep view coherent on resize
+      window.addEventListener('resize', applyTransform);
+    })();
+  </script>
+</body>
+
+</html>
