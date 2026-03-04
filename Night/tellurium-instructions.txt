@@ -1,0 +1,93 @@
+📁 Included Structure
+stellarium-boston-sky/
+├─ README.md
+├─ index.html                      # Entry page (minimal placeholder—you can replace it with the full UI page)
+├─ public/
+│   ├─ js/
+│   │   ├─ main.js                 # You will replace with the full Stellarium wiring JS
+│   │   └─ config.js               # Location, FOV, time-speed defaults
+│   └─ overlays/
+│       └─ boston-skyline.svg      # Boston skyline silhouette (foreground overlay)
+├─ vendor/
+│   └─ stellarium/
+│       ├─ test-skydata/.keep      # Put Stellarium data here
+│       ├─ fonts/.keep             # Roboto fonts go here
+│       ├─ stellarium-web-engine.js   # (Add from upstream build)
+│       └─ stellarium-web-engine.wasm  # (Add from upstream build)
+├─ netlify.toml                    # Sets WASM MIME headers
+├─ vercel.json                     # Same for Vercel
+└─ _headers                        # Netlify-style fallback headers
+
+
+🏙️ Skyline Overlay (Mode C = Both)
+You've requested both overlay systems:
+✔️ A. Canvas Overlay (Foreground)
+
+Loads boston-skyline.svg
+Draws it at the bottom edge of the canvas
+Can fade/slide/toggle independently of Stellarium's layers
+Works even if Stellarium landscape is off
+
+✔️ B. Stellarium Landscape
+
+You can convert the skyline SVG into a Stellarium landscape package (PNG + .ini)
+Add via:
+JavaScriptcore.landscapes.addDataSource({ url: base + 'landscapes/boston', key: 'boston' });Show more lines
+
+Then toggle using:
+JavaScriptcore.landscapes.visible = true/false;Show more lines
+
+
+The ZIP includes the skyline SVG; I can also generate the full Stellarium‑ready landscape package (PNG + horizon mask + .ini) if you want.
+
+🚀 Deploy Buttons (Already Included)
+Your README contains:
+Deploy to Netlify
+Markdownhttps://www.netlify.com/img/deploy/button.svg](https://app.netlify.com/start)Show more lines
+Deploy with Vercel
+Markdownhttps://vercel.com/button](https://vercel.com/import/project)Show more lines
+These hosts automatically serve .wasm correctly, which Stellarium Web Engine requires.
+This is consistent with the engine documentation describing it as a WebGL/JavaScript planetarium engine meant for embedding. 2
+Data sources match the official example wiring pattern (stars, skycultures, DSO catalogs, landscapes, surveys, comets, satellites). [us-prod.as...rosoft.com] [us-prod.as...rosoft.com]
+
+📌 Next Steps for You
+1. Drop in the real Stellarium engine files:
+vendor/stellarium/stellarium-web-engine.js
+vendor/stellarium/stellarium-web-engine.wasm
+
+2. Copy test-skydata from upstream:
+From:
+stellarium-web-engine/apps/simple-html/test-skydata/
+Into:
+vendor/stellarium/test-skydata/
+3. Replace index.html + main.js with the fully interactive version
+I can generate the complete, refined index.html + public/js/main.js with:
+
+Canvas + Stellarium rendering
+Animated sky
+Time control
+Constellations toggle
+Atmosphere toggle
+Landscape (Stellarium) toggle
+Boston skyline overlay toggle
+FOV control
+
+Just say:
+
+“Generate the full index.html + main.js for this repo.”
+
+
+Want the skyline as a real Stellarium landscape?
+I can generate:
+
+landscapes/boston/landscape.ini
+Terrain mask
+Silhouette PNG
+Proper horizon alignment
+
+Just say:
+
+“Create the Stellarium landscape package for Boston skyline.”
+
+
+Whenever you're ready, I can generate the enhanced UI page and scripts.

@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Night Sky — Boston (Patched · 70% Smaller + Bluer Sky · size-mapping v4 (color-dup-fix))</title>
+<style>
+ @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Inconsolata:wght@300;400&display=swap');
+ * { margin: 0; padding: 0; box-sizing: border-box; }
+ body {
+  background: #000;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  font-family: 'Cormorant Garamond', serif;
+  cursor: crosshair;
+ }
+ #sky-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+ }
+ #landscape-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+ }
+ /* UI overlay */
+ #ui {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 0 40px 32px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+ }
+ #time-panel {
+  pointer-events: all;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  border-radius: 4px;
+  padding: 18px 24px 16px;
+  width: 380px;
+ }
+ #time-display {
+  font-family: 'Inconsolata', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(180,200,255,0.7);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+ }
+ #date-display {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 300;
+  color: rgba(220,230,255,0.95);
+  margin-bottom: 16px;
+  font-style: italic;
+ }
+ .slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+ }
+ .slider-label {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(150,170,220,0.6);
+  text-transform: uppercase;
+  width: 36px;
+  flex-shrink: 0;
+ }
+ input[type=range] {
+  -webkit-appearance: none;
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+  outline: none;
+  border-radius: 1px;
+ }
+ input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(180,200,255,0.9);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(150,180,255,0.8);
+ }
+ #live-btn {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: none;
+  border: 1px solid rgba(180,200,255,0.3);
+  color: rgba(180,200,255,0.6);
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+ }
+ #live-btn.active {
+  border-color: rgba(180,200,255,0.8);
+  color: rgba(180,200,255,1);
+  box-shadow: 0 0 10px rgba(150,180,255,0.3);
+ }
+ #live-btn:hover {
+  border-color: rgba(180,200,255,0.6);
+  color: rgba(180,200,255,0.9);
+ }
+ #info-panel {
+  text-align: right;
+  pointer-events: none;
+ }
+ #location-label {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(150,170,220,0.5);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+ }
+ #location-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 300;
+  color: rgba(200,215,255,0.85);
+  font-style: italic;
+ }
+ #star-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(180,200,255,0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 3px;
+  padding: 8px 12px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  color: rgba(220,230,255,0.9);
+  font-style: italic;
+  display: none;
+  z-index: 20;
+  white-space: nowrap;
+ }
+ #star-tooltip .mag {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  color: rgba(150,170,220,0.6);
+  font-style: normal;
+  display: block;
+  margin-top: 2px;
+ }
+ /* Speed control */
+ .speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+ }
+ .speed-btn {
+  font-family: 'Inconsolata', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(180,200,255,0.5);
+  padding: 3px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+ }
+ .speed-btn:hover, .speed-btn.active {
+  border-color: rgba(180,200,255,0.5);
+  color: rgba(180,200,255,0.9);
+ }
+</style>
+</head>
+<body>
+<canvas id="sky-canvas"></canvas>
+<canvas id="landscape-canvas"></canvas>
+<div id="star-tooltip"><span id="tt-name"></span><span class="mag" id="tt-mag"></span></div>
+<div id="ui">
+ <div id="time-panel">
+  <div id="time-display">Boston, MA · 42.36°N 71.06°W</div>
+  <div id="date-display">—</div>
+  <div class="slider-row">
+   <span class="slider-label">Hour</span>
+   <input type="range" id="hour-slider" min="0" max="23.99" step="0.01" value="22">
+  </div>
+  <div class="slider-row">
+   <span class="slider-label">Day</span>
+   <input type="range" id="day-slider" min="0" max="364" step="1" value="0">
+  </div>
+  <div class="speed-row">
+   <button class="speed-btn" id="live-btn">● Live</button>
+   <button class="speed-btn" onclick="setSpeed(0)" id="sp0">Pause</button>
+   <button class="speed-btn" onclick="setSpeed(60)" id="sp1">1×</button>
+   <button class="speed-btn" onclick="setSpeed(3600)" id="sp2">60×</button>
+   <button class="speed-btn" onclick="setSpeed(86400)" id="sp3">Day</button>
+  </div>
+ </div>
+ <div id="info-panel">
+  <div id="location-label">Looking South</div>
+  <div id="location-name">Boston</div>
+ </div>
+</div>
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+const LAT = 42.3601 * Math.PI / 180; // Boston latitude (radians)
+const LON = -71.0589; // Boston longitude (degrees)
+const SKY_STARS = 2500;
+// Spectral type color map (OBAFGKM sequence)
+const SPECTRAL_COLORS = {
+  O: 'rgba(155,180,255,1)',
+  B: 'rgba(185,210,255,1)',
+  A: 'rgba(220,232,255,1)',
+  F: 'rgba(248,245,220,1)',
+  G: 'rgba(255,238,180,1)',
+  K: 'rgba(255,210,130,1)',
+  M: 'rgba(255,175,95,1)',
+};
+
+// Star visual controls — clean unified approach
+const NAMED_STARS = [
+ { name: "Sirius", ra: 6.7525, dec: -16.716, mag: -1.46, sp: 'A' },
+ { name: "Canopus", ra: 6.3992, dec: -52.696, mag: -0.72, sp: 'F' },
+ { name: "Arcturus", ra: 14.2612, dec: 19.182, mag: -0.05, sp: 'K' },
+ { name: "Vega", ra: 18.6157, dec: 38.784, mag: 0.03, sp: 'A' },
+ { name: "Capella", ra: 5.2781, dec: 45.998, mag: 0.08, sp: 'G' },
+ { name: "Rigel", ra: 5.2423, dec: -8.202, mag: 0.13, sp: 'B' },
+ { name: "Procyon", ra: 7.6553, dec: 5.225, mag: 0.34, sp: 'F' },
+ { name: "Betelgeuse", ra: 5.9193, dec: 7.407, mag: 0.42, sp: 'M' },
+ { name: "Altair", ra: 19.8463, dec: 8.868, mag: 0.76, sp: 'A' },
+ { name: "Aldebaran", ra: 4.5987, dec: 16.509, mag: 0.85, sp: 'K' },
+ { name: "Antares", ra: 16.4901, dec: -26.432, mag: 0.96, sp: 'M' },
+ { name: "Spica", ra: 13.4199, dec: -11.161, mag: 1.04, sp: 'B' },
+ { name: "Pollux", ra: 7.7553, dec: 28.026, mag: 1.14, sp: 'K' },
+ { name: "Fomalhaut", ra: 22.9608, dec: -29.622, mag: 1.16, sp: 'A' },
+ { name: "Deneb", ra: 20.6905, dec: 45.280, mag: 1.25, sp: 'A' },
+ { name: "Regulus", ra: 10.1395, dec: 11.967, mag: 1.35, sp: 'B' },
+ { name: "Adhara", ra: 6.9771, dec: -28.972, mag: 1.50, sp: 'B' },
+ { name: "Castor", ra: 7.5766, dec: 31.888, mag: 1.58, sp: 'A' },
+ { name: "Shaula", ra: 17.5600, dec: -37.104, mag: 1.62, sp: 'B' },
+ { name: "Bellatrix", ra: 5.4188, dec: 6.350, mag: 1.64, sp: 'B' },
+ { name: "Elnath", ra: 5.4382, dec: 28.608, mag: 1.65, sp: 'B' },
+ { name: "Miaplacidus", ra: 9.2200, dec: -69.717, mag: 1.68, sp: 'A' },
+ { name: "Alnilam", ra: 5.6036, dec: -1.202, mag: 1.69, sp: 'B' },
+ { name: "Alnair", ra: 22.1374, dec: -46.961, mag: 1.74, sp: 'B' },
+ { name: "Alnitak", ra: 5.6796, dec: -1.943, mag: 1.77, sp: 'O' },
+ { name: "Mirfak", ra: 3.4054, dec: 49.861, mag: 1.79, sp: 'F' },
+ { name: "Dubhe", ra: 11.0621, dec: 61.751, mag: 1.79, sp: 'K' },
+ { name: "Wezen", ra: 7.1397, dec: -26.393, mag: 1.84, sp: 'F' },
+ { name: "Alioth", ra: 12.9004, dec: 55.960, mag: 1.76, sp: 'A' },
+ { name: "Kaus Australis", ra: 18.4028, dec: -34.384, mag: 1.85, sp: 'B' },
+ { name: "Avior", ra: 8.3752, dec: -59.509, mag: 1.86, sp: 'K' },
+ { name: "Alkaid", ra: 13.7923, dec: 49.313, mag: 1.86, sp: 'B' },
+ { name: "Menkalinan", ra: 5.9927, dec: 44.948, mag: 1.90, sp: 'A' },
+ { name: "Atria", ra: 16.8113, dec: -69.028, mag: 1.91, sp: 'K' },
+ { name: "Alhena", ra: 6.6285, dec: 16.399, mag: 1.93, sp: 'A' },
+ { name: "Peacock", ra: 20.4274, dec: -56.735, mag: 1.94, sp: 'B' },
+ { name: "Polaris", ra: 2.5302, dec: 89.264, mag: 1.97, sp: 'F' },
+ { name: "Mimosa", ra: 12.7954, dec: -59.689, mag: 1.25, sp: 'B' },
+ { name: "Denebola", ra: 11.8177, dec: 14.572, mag: 2.14, sp: 'A' },
+ { name: "Alphard", ra: 9.4597, dec: -8.659, mag: 1.99, sp: 'K' },
+];
+// ─── STATE ─────────────────────────────────────────────────
+let simTime = new Date();
+let speed = 60; // seconds per real second
+let isLive = true;
+let lastRealTime = Date.now();
+let stars = [];
+let mouseX = 0, mouseY = 0;
+let hoveredStar = null;
+// ─── CANVAS SETUP ──────────────────────────────────────────
+const skyCanvas = document.getElementById('sky-canvas');
+const skyCtx = skyCanvas.getContext('2d');
+const landCanvas = document.getElementById('landscape-canvas');
+const landCtx = landCanvas.getContext('2d');
+function resize() {
+  skyCanvas.width = landCanvas.width = window.innerWidth;
+  skyCanvas.height = landCanvas.height = window.innerHeight;
+  drawLandscape();
+}
+window.addEventListener('resize', resize);
+// ─── ASTRONOMY MATH ────────────────────────────────────────
+function julianDate(d) {
+  return d / 86400000 + 2440587.5;
+}
+function lst(date) {
+  const jd = julianDate(date);
+  const T = (jd - 2451545.0) / 36525;
+  let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545) +
+    0.000387933 * T * T - T * T * T / 38710000;
+  gmst = ((gmst % 360) + 360) % 360;
+  return (gmst + LON + 360) % 360;
+}
+function raDecToAltAz(ra_hours, dec_deg, date) {
+  const ra = ra_hours * 15; // degrees
+  const dec = dec_deg * Math.PI / 180;
+  const lstDeg = lst(date);
+  const ha = ((lstDeg - ra) + 360) % 360;
+  const haR = ha * Math.PI / 180;
+  const sinAlt = Math.sin(dec) * Math.sin(LAT) +
+                 Math.cos(dec) * Math.cos(LAT) * Math.cos(haR);
+  const alt = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+  const cosAz = (Math.sin(dec) - Math.sin(alt) * Math.sin(LAT)) /
+                (Math.cos(alt) * Math.cos(LAT));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+  if (Math.sin(haR) > 0) az = 2 * Math.PI - az;
+  return { alt: alt * 180 / Math.PI, az: az * 180 / Math.PI };
+}
+// Better: equirectangular-like projection centered on south
+function projectStar(alt, az, w, h) {
+  const horizonY = h * 0.73;
+  // Center view on South (az=180)
+  let daz = az - 180;
+  if (daz > 180) daz -= 360;
+  if (daz < -180) daz += 360;
+  const x = w / 2 + (w / 2) * (daz / 110); // ~110 degrees of az visible
+  const y = horizonY - (horizonY * 1.05) * (alt / 85);
+  return { x, y };
+}
+// ─── STAR GENERATION ───────────────────────────────────────
+function initStars() {
+  stars = [];
+  // Named bright stars
+  for (const s of NAMED_STARS) {
+    stars.push({
+      ra: s.ra, dec: s.dec, mag: s.mag,
+      name: s.name, named: true,
+      color: SPECTRAL_COLORS[s.sp] || SPECTRAL_COLORS.A
+    });
+  }
+  // Random background stars using a seeded distribution
+  const seed = 42;
+  function seededRand(i) {
+    let x = Math.sin(i * 127.1 + seed * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  for (let i = 0; i < SKY_STARS; i++) {
+    const ra = seededRand(i * 3) * 24;
+    const dec = (seededRand(i * 3 + 1) * 2 - 1);
+    const decDeg = Math.asin(dec) * 180 / Math.PI;
+    if (decDeg < -55) continue; // limit what's visible from Boston
+    const mag = 2.0 + seededRand(i * 3 + 2) * 4.5;
+    // We keep spectral color in data; draw step will apply override
+    stars.push({ ra, dec: decDeg, mag, named: false, color: randomStarColor(i) });
+  }
+}
+function randomStarColor(i) {
+  const r = Math.sin(i * 0.3 + 1) * 0.5 + 0.5;
+  if (r < 0.05) return SPECTRAL_COLORS.O;
+  if (r < 0.18) return SPECTRAL_COLORS.B;
+  if (r < 0.35) return SPECTRAL_COLORS.A;
+  if (r < 0.55) return SPECTRAL_COLORS.F;
+  if (r < 0.72) return SPECTRAL_COLORS.G;
+  if (r < 0.88) return SPECTRAL_COLORS.K;
+  return SPECTRAL_COLORS.M;
+}
+// ─── LANDSCAPE DRAWING ─────────────────────────────────────
+function drawLandscape() {
+  const w = landCanvas.width;
+  const h = landCanvas.height;
+  landCtx.clearRect(0, 0, w, h);
+  const horizonY = h * 0.73;
+
+  // Sky-to-horizon ambient — matches the warm pollution glow drawn in sky layer
+  const horizAmb = landCtx.createLinearGradient(0, horizonY - 30, 0, horizonY + 10);
+  horizAmb.addColorStop(0, 'rgba(0,0,0,0)');
+  horizAmb.addColorStop(1, 'rgba(15,8,2,0.6)');
+  landCtx.fillStyle = horizAmb;
+  landCtx.fillRect(0, horizonY - 30, w, 40);
+
+  // Layered mountains — progressively darker toward foreground
+  // Each layer: heightFactor (how high), variance (jaggedness), peaks, color, seed
+  drawMountainLayer(landCtx, w, h, horizonY, 0.38, 0.20, 9,  '#090d1c', 12);
+  drawMountainLayer(landCtx, w, h, horizonY, 0.28, 0.16, 7,  '#070a17', 7);
+  drawMountainLayer(landCtx, w, h, horizonY, 0.20, 0.11, 6,  '#060812', 3);
+  drawMountainLayer(landCtx, w, h, horizonY, 0.12, 0.07, 8,  '#04060e', 19);
+  drawMountainLayer(landCtx, w, h, horizonY, 0.06, 0.04, 11, '#03040b', 1);  // near foreground
+
+  // Warm amber glow pooling in the valleys / horizon — light pollution
+  const glowL = landCtx.createRadialGradient(w * 0.3, horizonY, 0, w * 0.3, horizonY, w * 0.45);
+  glowL.addColorStop(0, 'rgba(90,42,8,0.30)');
+  glowL.addColorStop(1, 'rgba(0,0,0,0)');
+  landCtx.fillStyle = glowL;
+  landCtx.fillRect(0, horizonY - 60, w, 80);
+
+  const glowR = landCtx.createRadialGradient(w * 0.72, horizonY, 0, w * 0.72, horizonY, w * 0.35);
+  glowR.addColorStop(0, 'rgba(70,30,5,0.22)');
+  glowR.addColorStop(1, 'rgba(0,0,0,0)');
+  landCtx.fillStyle = glowR;
+  landCtx.fillRect(0, horizonY - 60, w, 80);
+}
+function drawMountainLayer(ctx, w, h, horizonY, heightFactor, variance, peaks, color, seed) {
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  const points = [];
+  const numPts = peaks * 4 + 2;
+  for (let i = 0; i <= numPts; i++) {
+    const x = (i / numPts) * w;
+    let y;
+    if (i === 0 || i === numPts) {
+      y = horizonY;
+    } else {
+      const base = horizonY - h * heightFactor;
+      const noise = (Math.sin(i * seed * 1.3 + seed) * 0.5 + 0.5) * h * variance;
+      const noise2 = (Math.sin(i * seed * 2.7 + seed * 1.5) * 0.5 + 0.5) * h * variance * 0.4;
+      y = base + noise + noise2;
+    }
+    points.push({ x, y });
+  }
+  ctx.moveTo(0, h);
+  ctx.lineTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const cpx = (prev.x + curr.x) / 2;
+    ctx.quadraticCurveTo(prev.x, prev.y, cpx, (prev.y + curr.y) / 2);
+  }
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+// ─── SKY RENDERING ─────────────────────────────────────────
+function drawSky() {
+  const w = skyCanvas.width;
+  const h = skyCanvas.height;
+  const horizonY = h * 0.73;
+  skyCtx.clearRect(0, 0, w, h);
+
+  // Deep photographic sky: rich indigo-to-near-black
+  const skyGrad = skyCtx.createLinearGradient(0, 0, 0, horizonY);
+  skyGrad.addColorStop(0,    '#01030f');  // zenith: almost black with blue tint
+  skyGrad.addColorStop(0.35, '#02061a');
+  skyGrad.addColorStop(0.7,  '#050d2a');
+  skyGrad.addColorStop(0.9,  '#0a1535');
+  skyGrad.addColorStop(1,    '#0d1a3a');  // horizon: slightly lighter indigo
+  skyCtx.fillStyle = skyGrad;
+  skyCtx.fillRect(0, 0, w, horizonY + 10);
+
+  // Horizon light pollution glow — warm amber bleeding up
+  const pollutionGrad = skyCtx.createLinearGradient(0, horizonY - h * 0.25, 0, horizonY);
+  pollutionGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  pollutionGrad.addColorStop(0.6, 'rgba(40,18,6,0.15)');
+  pollutionGrad.addColorStop(1,   'rgba(80,35,8,0.45)');
+  skyCtx.fillStyle = pollutionGrad;
+  skyCtx.fillRect(0, horizonY - h * 0.25, w, h * 0.25 + 10);
+
+  // Milky Way
+  drawMilkyWay(w, h, horizonY);
+
+  // Stars
+  drawStars(w, h, horizonY);
+
+  // Very subtle vignette — darkens corners like a wide-angle lens
+  const vignette = skyCtx.createRadialGradient(w/2, horizonY * 0.55, horizonY * 0.3, w/2, horizonY * 0.55, w * 0.75);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.35)');
+  skyCtx.fillStyle = vignette;
+  skyCtx.fillRect(0, 0, w, horizonY);
+}
+
+// ─── MILKY WAY ─────────────────────────────────────────────
+// Defined as a spine of RA/Dec points with width and brightness at each
+const MW_SPINE = [
+  { ra: 21.5, dec: 57,   w: 0.11, b: 0.028 }, // Cygnus — bright core
+  { ra: 20.7, dec: 46,   w: 0.13, b: 0.038 },
+  { ra: 20.0, dec: 36,   w: 0.12, b: 0.032 },
+  { ra: 19.4, dec: 24,   w: 0.11, b: 0.030 },
+  { ra: 18.9, dec: 12,   w: 0.10, b: 0.028 },
+  { ra: 18.5, dec:  0,   w: 0.10, b: 0.030 },
+  { ra: 18.0, dec: -12,  w: 0.12, b: 0.038 },
+  { ra: 17.8, dec: -22,  w: 0.14, b: 0.050 }, // approaching galactic center
+  { ra: 17.76,dec: -29,  w: 0.16, b: 0.065 }, // galactic center region
+  { ra: 17.5, dec: -35,  w: 0.15, b: 0.055 },
+  { ra: 16.5, dec: -45,  w: 0.13, b: 0.038 },
+  // Northern extension through Perseus/Cassiopeia
+  { ra: 22.5, dec: 62,   w: 0.09, b: 0.022 },
+  { ra: 23.5, dec: 62,   w: 0.09, b: 0.020 },
+  { ra:  1.0, dec: 60,   w: 0.09, b: 0.022 },
+  { ra:  2.5, dec: 57,   w: 0.09, b: 0.025 }, // Cassiopeia
+  { ra:  3.5, dec: 51,   w: 0.09, b: 0.022 },
+  { ra:  4.5, dec: 40,   w: 0.09, b: 0.020 },
+  // Winter Milky Way (Gemini/Orion/Monoceros)
+  { ra:  6.5, dec: 22,   w: 0.09, b: 0.020 },
+  { ra:  7.0, dec: 10,   w: 0.09, b: 0.018 },
+  { ra:  7.5, dec:  0,   w: 0.09, b: 0.016 },
+  { ra:  8.0, dec: -10,  w: 0.09, b: 0.015 },
+];
+
+function drawMilkyWay(w, h, horizonY) {
+  // Draw multiple passes: wide diffuse glow + narrower brighter core
+  for (const pass of [
+    { wMult: 2.2, alpha: 0.45, color: [100, 110, 160] },   // wide diffuse
+    { wMult: 1.2, alpha: 0.55, color: [120, 130, 180] },   // mid band
+    { wMult: 0.5, alpha: 0.50, color: [160, 165, 210] },   // bright core
+  ]) {
+    for (const pt of MW_SPINE) {
+      const aa = raDecToAltAz(pt.ra, pt.dec, simTime);
+      if (aa.alt < -15) continue;
+      const pos = projectStar(aa.alt, aa.az, w, h);
+      if (pos.x < -300 || pos.x > w + 300 || pos.y > horizonY + 80) continue;
+
+      // Fade near horizon
+      const horizonFade = aa.alt < 15 ? aa.alt / 15 : 1;
+      const r = w * pt.w * pass.wMult;
+      const alpha = pt.b * pass.alpha * horizonFade;
+
+      const [cr, cg, cb] = pass.color;
+      const grd = skyCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, r);
+      grd.addColorStop(0,   `rgba(${cr},${cg},${cb},${alpha})`);
+      grd.addColorStop(0.4, `rgba(${cr},${cg},${cb},${alpha * 0.5})`);
+      grd.addColorStop(1,   'rgba(0,0,0,0)');
+      skyCtx.fillStyle = grd;
+      skyCtx.beginPath();
+      skyCtx.ellipse(pos.x, pos.y, r, r * 0.65, 0, 0, Math.PI * 2);
+      skyCtx.fill();
+    }
+  }
+
+  // Extra: dense star-cloud texture in galactic center region using tiny random dots
+  const gcAA = raDecToAltAz(17.76, -29, simTime);
+  if (gcAA.alt > 5) {
+    const gcPos = projectStar(gcAA.alt, gcAA.az, w, h);
+    const rng = (seed) => (Math.sin(seed * 127.1) * 0.5 + 0.5);
+    for (let i = 0; i < 180; i++) {
+      const ox = (rng(i * 3)     - 0.5) * w * 0.28;
+      const oy = (rng(i * 3 + 1) - 0.5) * w * 0.18;
+      const sz = rng(i * 3 + 2) * 1.0;
+      const a  = rng(i * 5 + 7) * 0.07 + 0.01;
+      const fade = Math.max(0, 1 - (ox*ox + oy*oy*2.5) / (w * w * 0.018));
+      if (gcPos.y + oy > horizonY - 5) continue;
+      skyCtx.beginPath();
+      skyCtx.arc(gcPos.x + ox, gcPos.y + oy, sz, 0, Math.PI * 2);
+      skyCtx.fillStyle = `rgba(200,210,240,${a * fade})`;
+      skyCtx.fill();
+    }
+  }
+}
+
+// ─── STAR RENDERING ────────────────────────────────────────
+function drawStars(w, h, horizonY) {
+  hoveredStar = null;
+
+  for (const star of stars) {
+    const aa = raDecToAltAz(star.ra, star.dec, simTime);
+    if (aa.alt < -2) continue;
+
+    const pos = projectStar(aa.alt, aa.az, w, h);
+    if (pos.x < -10 || pos.x > w + 10 || pos.y > horizonY - 3 || pos.y < 0) continue;
+
+    // Atmospheric extinction near horizon
+    const extinction = aa.alt < 15 ? Math.pow((15 - aa.alt) / 15, 1.5) * 0.75 : 0;
+    const effectiveMag = star.mag + extinction * 2.5;
+    if (effectiveMag > 6.8 && !star.named) continue;
+
+    // Photographic star sizing: logarithmic brightness → radius
+    // Uses a power-law so faint stars are truly tiny pinpoints
+    // and bright stars are modestly larger — no huge discs
+    const MAG_ZERO_RADIUS = 2.2;  // radius in px for a mag-0 star
+    const MAG_SCALE = 0.38;       // controls how fast size drops per magnitude
+    const radius = Math.max(0.12, MAG_ZERO_RADIUS * Math.pow(10, -MAG_SCALE * effectiveMag / 2.5));
+
+    // Alpha: bright stars fully opaque, faint stars slightly translucent
+    // This mimics how eyes/film integrate faint sources
+    const baseAlpha = Math.max(0.25, Math.min(1.0, 1.2 - effectiveMag * 0.13));
+    const alpha = baseAlpha * (1 - extinction * 0.85);
+
+    // Color: subtle, not saturated — real stars look near-white to the eye
+    // We keep spectral hue but desaturate significantly
+    const col = star.color; // e.g. 'rgba(185,210,255,1)'
+
+    // ── Glow layer: soft bloom for stars brighter than ~mag 2 ──
+    if (star.mag < 2.2) {
+      const glowStrength = Math.max(0, (2.2 - star.mag) / 2.2);
+      const glowR = radius * (3.5 + glowStrength * 5);
+      const glowAlpha = glowStrength * 0.12 * alpha;
+      const grd = skyCtx.createRadialGradient(pos.x, pos.y, radius * 0.3, pos.x, pos.y, glowR);
+      grd.addColorStop(0,   col.replace('1)', `${glowAlpha * 2})`));
+      grd.addColorStop(0.3, col.replace('1)', `${glowAlpha}`));
+      grd.addColorStop(1,   'rgba(0,0,0,0)');
+      skyCtx.fillStyle = grd;
+      skyCtx.beginPath();
+      skyCtx.arc(pos.x, pos.y, glowR, 0, Math.PI * 2);
+      skyCtx.fill();
+    }
+
+    // ── Core star point ──
+    // For very bright stars, draw a soft Gaussian-ish blob rather than a hard circle
+    if (star.mag < 1.0 && radius > 0.8) {
+      const coreGrd = skyCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 2.5);
+      coreGrd.addColorStop(0,   col.replace('1)', `${alpha})`));
+      coreGrd.addColorStop(0.4, col.replace('1)', `${alpha * 0.8})`));
+      coreGrd.addColorStop(1,   col.replace('1)', '0)'));
+      skyCtx.fillStyle = coreGrd;
+      skyCtx.beginPath();
+      skyCtx.arc(pos.x, pos.y, radius * 2.5, 0, Math.PI * 2);
+      skyCtx.fill();
+    } else {
+      skyCtx.beginPath();
+      skyCtx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+      skyCtx.fillStyle = col.replace('1)', `${alpha})`);
+      skyCtx.fill();
+    }
+
+    // Hover detection
+    if (star.named) {
+      const dx = mouseX - pos.x, dy = mouseY - pos.y;
+      if (dx * dx + dy * dy < 225) {
+        hoveredStar = { ...star, x: pos.x, y: pos.y, alt: aa.alt, az: aa.az };
+      }
+    }
+  }
+}
+// ─── TOOLTIP ───────────────────────────────────────────────
+const tooltip = document.getElementById('star-tooltip');
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+function updateTooltip() {
+  if (hoveredStar) {
+    document.getElementById('tt-name').textContent = hoveredStar.name;
+    document.getElementById('tt-mag').textContent =
+      `mag ${hoveredStar.mag.toFixed(2)} · alt ${hoveredStar.alt.toFixed(1)}°`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (hoveredStar.x + 14) + 'px';
+    tooltip.style.top = (hoveredStar.y - 10) + 'px';
+  } else {
+    tooltip.style.display = 'none';
+  }
+}
+// ─── TIME / UI ─────────────────────────────────────────────
+const hourSlider = document.getElementById('hour-slider');
+const daySlider = document.getElementById('day-slider');
+const dateDisplay = document.getElementById('date-display');
+const liveBtn = document.getElementById('live-btn');
+function setLive(v) {
+  isLive = v;
+  liveBtn.classList.toggle('active', v);
+  if (v) {
+    simTime = new Date();
+    syncSlidersToTime();
+  }
+}
+function setSpeed(s) {
+  speed = s;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+  if (s === 0) document.getElementById('sp0').classList.add('active');
+  else if (s === 60) document.getElementById('sp1').classList.add('active');
+  else if (s === 3600) document.getElementById('sp2').classList.add('active');
+  else if (s === 86400) document.getElementById('sp3').classList.add('active');
+}
+function syncSlidersToTime() {
+  const h = simTime.getHours() + simTime.getMinutes() / 60 + simTime.getSeconds() / 3600;
+  const start = new Date(simTime.getFullYear(), 0, 0);
+  const diff = simTime - start;
+  const day = Math.floor(diff / 86400000);
+  hourSlider.value = h;
+  daySlider.value = Math.min(364, day);
+}
+function syncTimeToSliders() {
+  const year = simTime.getFullYear();
+  const day = parseInt(daySlider.value);
+  const hour = parseFloat(hourSlider.value);
+  const d = new Date(year, 0, day + 1);
+  d.setHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
+  simTime = d;
+}
+hourSlider.addEventListener('input', () => { setLive(false); syncTimeToSliders(); });
+daySlider.addEventListener('input', () => { setLive(false); syncTimeToSliders(); });
+liveBtn.addEventListener('click', () => setLive(!isLive));
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function updateDateDisplay() {
+  const d = simTime;
+  const h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = ((h % 12) || 12);
+  dateDisplay.textContent = `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h12}:${m} ${ampm}`;
+}
+// ─── MAIN LOOP ─────────────────────────────────────────────
+setLive(true);
+setSpeed(60);
+initStars();
+resize();
+function loop() {
+  const now = Date.now();
+  const dt = (now - lastRealTime) / 1000; // real seconds elapsed
+  lastRealTime = now;
+  if (isLive) {
+    simTime = new Date();
+    syncSlidersToTime();
+  } else if (speed > 0) {
+    simTime = new Date(simTime.getTime() + dt * speed * 1000);
+    syncSlidersToTime();
+  }
+  updateDateDisplay();
+  drawSky();
+  updateTooltip();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

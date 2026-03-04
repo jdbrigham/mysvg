@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Accurate Starfield Background — Stellarium Web Engine</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #000; color: #ddd; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    /* Fullscreen background canvas */
+    #sky-canvas {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1;
+      display:block;
+    }
+    /* Minimal floating controls */
+    .panel {
+      position: fixed; left: 1rem; bottom: 1rem; right: 1rem;
+      background: rgba(0,0,0,0.55); border: 1px solid #2a2a2a; border-radius: 10px;
+      padding: .75rem 1rem; backdrop-filter: blur(4px);
+      display: grid; grid-template-columns: repeat(6, auto); gap: .75rem; align-items: center;
+    }
+    .panel label { font-size: .9rem; color: #bfc7d5; }
+    .panel input[type="range"] { width: 180px; }
+    .chip { padding: .35rem .6rem; border-radius: 20px; border: 1px solid #3a3a3a; cursor: pointer; user-select: none; }
+    .chip[aria-pressed="true"] { background: #19324d; color: #cfe4ff; border-color: #28537d; }
+    .spacer { flex: 1; }
+    .row { display:flex; gap:.75rem; align-items:center; flex-wrap: wrap; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    @media (max-width: 720px){ .panel{ grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <!-- Background canvas where Stellarium will render -->
+  <canvas id="sky-canvas"></canvas>
+
+  <!-- Minimal control panel -->
+  <div class="panel" role="group" aria-label="Starfield controls">
+    <div class="row">
+      <label class="mono">Location:</label>
+      <span id="locLabel" class="mono">42.3601, -71.0589 (10m)</span>
+    </div>
+    <div class="row">
+      <label for="speed">Time speed:</label>
+      <input id="speed" type="range" min="-60" max="300" step="1" value="30"/>
+      <span id="speedLabel" class="mono">+30×</span>
+    </div>
+    <div class="row">
+      <button id="pauseBtn" class="chip" aria-pressed="false">Pause</button>
+      <button id="nowBtn" class="chip">Now</button>
+    </div>
+    <div class="row">
+      <button id="cstBtn" class="chip" aria-pressed="false">Constellations</button>
+      <button id="atmBtn" class="chip" aria-pressed="true">Atmosphere</button>
+      <button id="landBtn" class="chip" aria-pressed="false">Landscape</button>
+    </div>
+    <div class="row">
+      <label for="fov">FOV:</label>
+      <input id="fov" type="range" min="10" max="120" step="1" value="90"/>
+      <span id="fovLabel" class="mono">90°</span>
+    </div>
+    <div class="row">
+      <label for="time">Time (UTC):</label>
+      <input id="time" type="datetime-local" step="1"/>
+    </div>
+  </div>
+
+  <!-- IMPORTANT: Place the built Stellarium Web Engine files and the test-skydata assets
+       under ./vendor/stellarium/ as described in the README that accompanies this file. -->
+  <script>
+    // Emscripten loader hint so the JS can find the WASM in our vendor folder
+    window.Module = window.Module || {};
+    Module.locateFile = (path) => {
+      if (path.endsWith('.wasm')) return 'vendor/stellarium/stellarium-web-engine.wasm';
+      return path;
+    };
+  </script>
+  <script src="vendor/stellarium/stellarium-web-engine.js"></script>
+  <script>
+  (function(){
+    const canvas = document.getElementById('sky-canvas');
+    const speedSlider = document.getElementById('speed');
+    const speedLabel  = document.getElementById('speedLabel');
+    const pauseBtn    = document.getElementById('pauseBtn');
+    const nowBtn      = document.getElementById('nowBtn');
+    const cstBtn      = document.getElementById('cstBtn');
+    const atmBtn      = document.getElementById('atmBtn');
+    const landBtn     = document.getElementById('landBtn');
+    const fovSlider   = document.getElementById('fov');
+    const fovLabel    = document.getElementById('fovLabel');
+    const timeInput   = document.getElementById('time');
+
+    // Boston default (can be edited):
+    const LAT = 42.3601, LON = -71.0589, ELEV = 10;
+
+    // Initial playback speed multiplier (seconds of sky time per real second)
+    let timeSpeed = parseFloat(speedSlider.value); // +30x by default
+    let paused = false;
+
+    // Engine handle
+    let stel = null;
+
+    // Convert Date -> ISO without timezone offset (UTC)
+    function toISO(dt){
+      return new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().replace('Z','Z');
+    }
+
+    // Update speed label
+    function updateSpeedLabel(){
+      const v = parseFloat(speedSlider.value);
+      speedLabel.textContent = (v>=0?'+':'') + v + '\u00D7';
+      timeSpeed = v;
+    }
+
+    // Update FOV label
+    function updateFovLabel(){ fovLabel.textContent = fovSlider.value + '°'; }
+
+    // Toggle helper
+    function toggleChip(btn){
+      const pressed = btn.getAttribute('aria-pressed') === 'true';
+      btn.setAttribute('aria-pressed', String(!pressed));
+      return !pressed;
+    }
+
+    // Initialize Stellarium Web Engine (from global function loaded by the script)
+    // See the official example which passes wasmFile, canvas, translateFn, onReady.
+    // We rely on default English strings and our own assets path.
+    if (typeof window.StelWebEngine !== 'function') {
+      console.error('Stellarium Web Engine script not found. Ensure vendor/stellarium/* files exist.');
+      alert('Stellarium engine is missing. Please read the README notes in this file.');
+      return;
+    }
+
+    StelWebEngine({
+      wasmFile: 'vendor/stellarium/stellarium-web-engine.wasm',
+      canvas: canvas,
+      onReady: function(engine){
+        stel = engine;
+
+        // Attach built-in test data sources shipped with the repo's test-skydata
+        // Adjust the base path if you move these folders.
+        const base = 'vendor/stellarium/test-skydata/';
+        const core = stel.core;
+        core.stars.addDataSource({ url: base + 'stars' });
+        core.skycultures.addDataSource({ url: base + 'skycultures/western', key: 'western' });
+        core.dsos.addDataSource({ url: base + 'dso' });
+        core.landscapes.addDataSource({ url: base + 'landscapes/guereins', key: 'guereins' });
+        core.milkyway.addDataSource({ url: base + 'surveys/milkyway' });
+        core.minor_planets.addDataSource({ url: base + 'mpcorb.dat', key: 'mpc_asteroids' });
+        core.planets.addDataSource({ url: base + 'surveys/sso/moon', key: 'moon' });
+        core.planets.addDataSource({ url: base + 'surveys/sso/sun', key: 'sun' });
+        core.planets.addDataSource({ url: base + 'surveys/sso/moon', key: 'default' });
+        core.comets.addDataSource({ url: base + 'CometEls.txt', key: 'mpc_comets' });
+        core.satellites.addDataSource({ url: base + 'tle_satellite.jsonl.gz', key: 'jsonl/sat' });
+
+        // Set fonts (optional)
+        if (stel.setFont) {
+          stel.setFont('regular', 'vendor/stellarium/fonts/Roboto-Regular.ttf', 1.38);
+          stel.setFont('bold',    'vendor/stellarium/fonts/Roboto-Bold.ttf',    1.38);
+        }
+
+        // Observer location and time
+        core.observer.setLocation(LAT, LON, ELEV);
+        const now = new Date();
+        core.observer.setDate(now.toISOString());
+        timeInput.value = toISO(now).slice(0,19); // yyyy-mm-ddThh:mm:ss
+
+        // Atmosphere default on
+        core.atmosphere.visible = true;
+
+        // Minimal animation loop: advance time according to speed slider.
+        let last = performance.now();
+        function frame(ts){
+          const dt = (ts - last)/1000; // seconds real time
+          last = ts;
+          if (stel && !paused && timeSpeed !== 0){
+            // Advance engine time
+            const cur = new Date(timeInput.value);
+            cur.setSeconds(cur.getSeconds() + dt * timeSpeed);
+            core.observer.setDate(cur.toISOString());
+            timeInput.value = toISO(cur).slice(0,19);
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+
+        // Wire up controls
+        speedSlider.addEventListener('input', updateSpeedLabel);
+        updateSpeedLabel();
+
+        fovSlider.addEventListener('input', ()=>{
+          updateFovLabel();
+          if (core.view && typeof core.view.setFov === 'function') {
+            core.view.setFov(parseFloat(fovSlider.value) * Math.PI/180);
+          }
+        });
+        updateFovLabel();
+
+        pauseBtn.addEventListener('click', ()=>{
+          paused = toggleChip(pauseBtn);
+        });
+        nowBtn.addEventListener('click', ()=>{
+          const n = new Date();
+          core.observer.setDate(n.toISOString());
+          timeInput.value = toISO(n).slice(0,19);
+        });
+        timeInput.addEventListener('change', ()=>{
+          const d = new Date(timeInput.value);
+          if (!isNaN(d)) core.observer.setDate(d.toISOString());
+        });
+
+        cstBtn.addEventListener('click', ()=>{
+          const val = toggleChip(cstBtn);
+          core.constellations.lines_visible = val;
+        });
+        atmBtn.addEventListener('click', ()=>{
+          const val = toggleChip(atmBtn);
+          core.atmosphere.visible = val;
+        });
+        landBtn.addEventListener('click', ()=>{
+          const val = toggleChip(landBtn);
+          core.landscapes.visible = val;
+        });
+
+        // Device pixel ratio for crisp canvas
+        function resize(){
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const rect = canvas.getBoundingClientRect();
+          canvas.width = Math.round(rect.width * dpr);
+          canvas.height = Math.round(rect.height * dpr);
+          if (stel.setPixelRatio) stel.setPixelRatio(dpr);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
