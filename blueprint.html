@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Blueprint — Isometric House (HTML/CSS + SVG)</title>
+  <style>
+    :root {
+      /* Easy theming */
+      --bp-bg: #0f5d8c;
+      /* base blueprint blue */
+      --bp-bg-dark: #0c4d75;
+      /* darker edge/bottom vignette */
+      --bp-line-major: rgba(255, 255, 255, 0.18);
+      --bp-line-minor: rgba(255, 255, 255, 0.10);
+      --bp-line-micro: rgba(255, 255, 255, 0.05);
+      --bp-stroke: #ffffff;
+      /* main white lines */
+      --bp-stroke-lite: rgba(255, 255, 255, 0.65);
+      --bp-stroke-faint: rgba(255, 255, 255, 0.35);
+      --grid-size: 32px;
+      /* major grid spacing */
+      --grid-subdiv: 4;
+      /* minor lines per major cell */
+      --grid-micro: 2;
+      /* micro lines per minor cell */
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: var(--bp-bg);
+      color: #fff;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Blueprint background: layered gradients for micro/minor/major grids + vignette */
+    .blueprint {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      /* Base blue plus vertical vignette (darker at very top and bottom) */
+      background:
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 90%, rgba(0, 0, 0, 0.35) 100%),
+        linear-gradient(var(--bp-bg-dark), var(--bp-bg));
+    }
+
+    /* Grid using multiple background layers on ::before so SVG sits on top cleanly */
+    .blueprint::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        /* micro grid */
+        linear-gradient(to right, var(--bp-line-micro) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bp-line-micro) 1px, transparent 1px),
+        /* minor grid */
+        linear-gradient(to right, var(--bp-line-minor) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--bp-line-minor) 1px, transparent 1px),
+        /* major grid */
+        linear-gradient(to right, var(--bp-line-major) 2px, transparent 2px),
+        linear-gradient(to bottom, var(--bp-line-major) 2px, transparent 2px);
+      background-size:
+        calc(var(--grid-size) / var(--grid-subdiv) / var(--grid-micro)) 100%,
+        100% calc(var(--grid-size) / var(--grid-subdiv) / var(--grid-micro)),
+        calc(var(--grid-size) / var(--grid-subdiv)) 100%,
+        100% calc(var(--grid-size) / var(--grid-subdiv)),
+        var(--grid-size) 100%,
+        100% var(--grid-size);
+      pointer-events: none;
+    }
+
+    /* A subtle paper texture effect (optional, pure CSS) */
+    .blueprint::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(100% 100% at 50% 0%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%),
+        radial-gradient(140% 60% at 50% 120%, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0) 60%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    /* Container to center and pad the SVG drawing area */
+    .stage {
+      position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 100%;
+      padding: 4rem 1rem 6rem;
+      /* space at bottom for “title block” */
+      box-sizing: border-box;
+    }
+
+    /* Responsive SVG: scales with container but maintains aspect */
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.25));
+    }
+
+    /* Optional bottom title-block */
+    .titlebar {
+      position: absolute;
+      left: max(0.5rem, env(safe-area-inset-left));
+      right: max(0.5rem, env(safe-area-inset-right));
+      bottom: max(0.75rem, env(safe-area-inset-bottom));
+      height: 72px;
+      border: 2px solid var(--bp-line-major);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.00));
+    }
+
+    .titlebar .divs {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+
+    .titlebar .divs>div {
+      border-left: 2px solid var(--bp-line-major);
+    }
+
+    .titlebar .divs>div:first-child {
+      border-left: none;
+    }
+
+    /* Small baseline scale indicator (bottom-left) */
+    .scale {
+      position: absolute;
+      left: 1rem;
+      bottom: 96px;
+      height: 10px;
+      width: 260px;
+      background:
+        repeating-linear-gradient(to right, var(--bp-line-major) 0 20px, transparent 20px 22px),
+        linear-gradient(to right, var(--bp-line-minor) 0 50%, transparent 50% 100%);
+      border: 2px solid var(--bp-line-major);
+    }
+  </style>
+</head>
+
+<body>
+  <main class="blueprint">
+    <div class="stage">
+      <!-- ===== SVG: White linework with glow ===== -->
+      <svg viewBox="0 0 1200 800" role="img" aria-label="Isometric modern house, blueprint line drawing">
+        <defs>
+          <!-- White glow to mimic blueprint pen bloom -->
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="blur1" />
+            <feMerge>
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <style>
+            .edge {
+              stroke: #fff;
+              stroke-width: 3.2;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              filter: url(#glow);
+            }
+
+            .edge-thin {
+              stroke: #fff;
+              stroke-width: 2;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              filter: url(#glow);
+            }
+
+            .detail {
+              stroke: rgba(255, 255, 255, 0.85);
+              stroke-width: 1.6;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              filter: url(#glow);
+            }
+
+            .faint {
+              stroke: rgba(255, 255, 255, 0.55);
+              stroke-width: 1.2;
+              fill: none;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              filter: url(#glow);
+            }
+
+            .construct {
+              stroke: rgba(255, 255, 255, 0.35);
+              stroke-width: 1;
+              stroke-dasharray: 8 10;
+              fill: none;
+            }
+
+            .tick {
+              stroke: rgba(255, 255, 255, 0.4);
+              stroke-width: 1;
+            }
+
+            .dot {
+              fill: #fff;
+              opacity: 0.85;
+            }
+          </style>
+        </defs>
+
+        <!-- Construction frame (light isometric guide box) -->
+        <path class="construct" d="M105,235  510,50  1045,270  640,455 Z" />
+        <path class="construct" d="M640,455 640,675 1045,490 1045,270" />
+        <path class="construct" d="M105,235 105,455 640,675" />
+
+        <!-- ===== Main massing: two interlocking volumes ===== -->
+        <!-- Upper big roof slab -->
+        <path class="edge" d="M170,255  510,100  960,285  620,440 Z" />
+        <!-- Roof thickness lip -->
+        <path class="detail" d="M170,255 170,270 620,455 620,440" />
+        <path class="detail" d="M620,455 960,300 960,285" />
+        <!-- Left cantilever slab underside -->
+        <path class="edge-thin" d="M170,270 120,295 120,515 160,495 160,275 Z" />
+        <path class="detail" d="M160,495 600,680 600,460 620,455" />
+
+        <!-- Right lower terrace roof (rectangular inset) -->
+        <path class="edge" d="M620,455  865,350  1020,415  775,520 Z" />
+        <path class="detail" d="M775,520 775,535 1020,430 1020,415" />
+        <!-- Posts supporting terrace -->
+        <g class="edge-thin">
+          <path d="M980,430 980,630" />
+          <path d="M940,445 940,645" />
+          <path d="M900,460 900,660" />
+          <path d="M860,475 860,680" />
+        </g>
+        <!-- Small caps on posts -->
+        <g>
+          <circle class="dot" cx="980" cy="430" r="4" />
+          <circle class="dot" cx="940" cy="445" r="4" />
+          <circle class="dot" cx="900" cy="460" r="4" />
+          <circle class="dot" cx="860" cy="475" r="4" />
+        </g>
+
+        <!-- Vertical core walls and frames -->
+        <path class="edge" d="M510,100 510,330 170,505 170,255" />
+        <path class="edge" d="M620,440 620,675 960,520 960,285" />
+        <path class="edge-thin" d="M510,330 620,380 620,440" />
+
+        <!-- Left façade window bands -->
+        <g class="detail">
+          <path d="M210,320 430,215 430,350 210,455 Z" />
+          <path d="M210,455 430,350" />
+          <path d="M210,387 430,282" />
+          <!-- lower window row -->
+          <path d="M240,500 455,395 455,520 240,625 Z" />
+          <path d="M240,625 455,520" />
+          <path d="M240,562 455,457" />
+        </g>
+
+        <!-- Entrance block projecting forward -->
+        <path class="edge" d="M520,410 690,340 690,525 520,595 Z" />
+        <!-- Entrance roof curb -->
+        <path class="detail" d="M540,420 670,365 670,505 540,560 Z" />
+
+        <!-- Door and sidelights -->
+        <g class="detail">
+          <path d="M560,535 560,460 615,437 615,512 Z" />
+          <path d="M560,497 615,472" />
+          <path d="M615,512 640,500 640,425 615,437" />
+          <path d="M560,535 585,523 585,448 560,460" />
+        </g>
+
+        <!-- Stairs to entrance -->
+        <g class="edge-thin">
+          <path d="M520,595 600,560" />
+          <path d="M535,615 615,580" />
+          <path d="M550,635 630,600" />
+          <path d="M520,595 535,615 550,635" />
+          <path d="M600,560 615,580 630,600" />
+        </g>
+
+        <!-- Roof details: skylight and rooftop unit -->
+        <g class="detail">
+          <!-- Skylight -->
+          <path d="M315,210 430,160 520,200 405,250 Z" />
+          <path class="faint" d="M405,250 405,265 520,215 520,200" />
+          <!-- Rooftop HVAC box -->
+          <path d="M660,190 745,155 815,185 730,220 Z" />
+          <path d="M730,220 730,235 815,200 815,185" />
+          <circle class="faint" cx="770" cy="187" r="10" />
+          <circle class="faint" cx="790" cy="195" r="10" />
+          <path class="faint" d="M745,155 745,170 815,200" />
+        </g>
+
+        <!-- Terrace parapet (inner rectangular opening) -->
+        <g class="edge-thin">
+          <path d="M680,410 835,345 930,385 775,450 Z" />
+          <path d="M680,410 680,430 775,470 775,450" />
+          <path d="M775,470 930,405 930,385" />
+        </g>
+
+        <!-- Small roof studs / vents -->
+        <g>
+          <circle class="dot" cx="265" cy="245" r="3.6" />
+          <circle class="dot" cx="355" cy="210" r="3.6" />
+          <circle class="dot" cx="560" cy="180" r="3.6" />
+          <circle class="dot" cx="900" cy="405" r="4" />
+          <circle class="dot" cx="940" cy="390" r="4" />
+        </g>
+
+        <!-- Dimension / extension lines around drawing (light, dashed and ticks) -->
+        <g>
+          <path class="construct" d="M140,225  170,255" />
+          <path class="construct" d="M100,240  170,270" />
+          <path class="tick" d="M122,232 132,240" />
+          <path class="tick" d="M88,246 98,254" />
+          <path class="construct" d="M980,285 1015,300" />
+          <path class="construct" d="M1015,300 1045,290" />
+          <path class="tick" d="M1000,292 1008,298" />
+        </g>
+
+        <!-- Ground shadow hint (thin) -->
+        <path class="faint" d="M200,660 430,735 935,520" />
+      </svg>
+
+      <!-- Decorative scale and title block -->
+      <div class="scale" aria-hidden="true"></div>
+      <div class="titlebar" aria-hidden="true">
+        <div class="divs">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+
+</html>

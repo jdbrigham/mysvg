@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 900 600"
+     width="100%" height="auto"
+     role="img" aria-label="Modular axonometric house drawing with separate stages">
+
+  <!--
+    Axonometric (isometric-style) modular house.
+    Layers you can toggle:
+      - stage-ground
+      - stage-foundation
+      - stage-framing
+      - stage-walls
+      - stage-windows
+      - stage-roof-flat   (default)
+      - stage-roof-gable  (placeholder, off by default)
+      - stage-landscaping
+      - stage-sketch      (extra simplified wireframe, off by default)
+  -->
+
+  <style>
+    :root{
+      --stroke: #111;       /* main line color */
+      --thin: 2;            /* default outline */
+      --thick: 3;           /* heavier edges */
+      --dash: 6 6;          /* dashed pattern for 'framing' */
+      --accent: #4a90e2;    /* optional accent for guides */
+    }
+
+    .outline { fill: none; stroke: var(--stroke); stroke-width: var(--thin);
+               stroke-linejoin: round; stroke-linecap: round; }
+    .heavy   { stroke-width: var(--thick); }
+    .faint   { opacity: .55; }
+    .dashed  { stroke-dasharray: var(--dash); }
+    .hidden  { display: none; }
+
+    /* Optional hover helpers for exploration; safe to remove */
+    [id^="stage-"]:hover .outline { stroke: #000; }
+  </style>
+
+  <!--
+    KEY POINTS (precomputed so you can copy/reposition easily):
+      Ground diamond:     Gtop(400,240)  Gleft(200,340)  Gbot(400,440)  Gright(600,340)
+      House footprint:    Pfront(440,412) Pleft(280,320) Pback(400,228) Pright(560,320)
+      Wall-top corners:   Tfront(440,292) Tleft(280,200) Tback(400,108) Tright(560,200)
+      Slab thickness:     10px (drawn downwards)
+      Wall height:        120px (vertical on screen)
+  -->
+
+  <!-- ============ GROUND / SITE ============ -->
+  <g id="stage-ground">
+    <polygon class="outline faint"
+             points="400,240 200,340 400,440 600,340"/>
+  </g>
+
+  <!-- ============ FOUNDATION (slab) ============ -->
+  <g id="stage-foundation">
+    <!-- Top of slab (matches house footprint) -->
+    <polygon class="outline heavy"
+             points="440,412 280,320 400,228 560,320"/>
+    <!-- Slab drop (thickness) -->
+    <g class="faint">
+      <!-- Vertical slab edges -->
+      <line class="outline" x1="440" y1="412" x2="440" y2="422"/>
+      <line class="outline" x1="280" y1="320" x2="280" y2="330"/>
+      <line class="outline" x1="400" y1="228" x2="400" y2="238"/>
+      <line class="outline" x1="560" y1="320" x2="560" y2="330"/>
+      <!-- Bottom face of slab -->
+      <polygon class="outline"
+               points="440,422 280,330 400,238 560,330"/>
+    </g>
+  </g>
+
+  <!-- ============ FRAMING (stud hints; dashed) ============ -->
+  <g id="stage-framing">
+    <!-- Right face studs (two) -->
+    <line class="outline dashed"
+          x1="480" y1="382" x2="480" y2="262"/>
+    <line class="outline dashed"
+          x1="519" y1="352" x2="519" y2="232"/>
+    <!-- Left face studs (two) -->
+    <line class="outline dashed"
+          x1="333" y1="350" x2="333" y2="230"/>
+    <line class="outline dashed"
+          x1="386" y1="381" x2="386" y2="261"/>
+  </g>
+
+  <!-- ============ WALLS (outline faces) ============ -->
+  <g id="stage-walls">
+    <!-- Left face -->
+    <polygon class="outline"
+             points="280,320 440,412 440,292 280,200"/>
+    <!-- Right face -->
+    <polygon class="outline"
+             points="440,412 560,320 560,200 440,292"/>
+    <!-- (Optional) Back face (usually partly hidden; kept faint) -->
+    <polygon class="outline faint"
+             points="280,320 400,228 400,108 280,200"/>
+  </g>
+
+  <!-- ============ WINDOWS (simple in-plane parallelograms) ============ -->
+  <g id="stage-windows">
+    <!-- Right face window -->
+    <polygon class="outline"
+             points="464,358 500,330 500,300 464,328"/>
+    <!-- Left face window -->
+    <polygon class="outline"
+             points="312,302 360,330 360,300 312,272"/>
+  </g>
+
+  <!-- ============ ROOF (choose one) ============ -->
+
+  <!-- Flat roof (default on; very clean outline for icon use) -->
+  <g id="stage-roof-flat">
+    <polygon class="outline heavy"
+             points="440,292 280,200 400,108 560,200"/>
+  </g>
+
+  <!-- Gable roof placeholder (kept off; turn on and refine as needed) -->
+  <g id="stage-roof-gable" class="hidden">
+    <!-- Example ridge line from back-top to front-top (feel free to adjust) -->
+    <line class="outline heavy" x1="400" y1="108" x2="440" y2="292"/>
+    <!-- Indicative eave edges (light) -->
+    <polyline class="outline faint" points="280,200 400,108 560,200"/>
+    <!-- You can extend this with roof planes if you want pitched ends -->
+  </g>
+
+  <!-- ============ LANDSCAPING (simple, optional) ============ -->
+  <g id="stage-landscaping">
+    <!-- Walk / pad -->
+    <polygon class="outline faint"
+             points="420,430 470,458 655,380 605,352"/>
+    <!-- Tree (symbolic) -->
+    <g transform="translate(220,350)">
+      <circle class="outline" cx="0" cy="0" r="16"/>
+      <line class="outline" x1="0" y1="16" x2="0" y2="26"/>
+      <line class="outline" x1="-6" y1="26" x2="6" y2="26"/>
+    </g>
+  </g>
+
+  <!-- ============ EXTRA: super-simple wireframe ============ -->
+  <g id="stage-sketch" class="hidden">
+    <polygon class="outline faint"
+             points="440,412 280,320 400,228 560,320"/>
+    <polygon class="outline faint"
+             points="440,292 280,200 400,108 560,200"/>
+    <line class="outline faint" x1="440" y1="412" x2="440" y2="292"/>
+    <line class="outline faint" x1="280" y1="320" x2="280" y2="200"/>
+    <line class="outline faint" x1="560" y1="320" x2="560" y2="200"/>
+    <line class="outline faint" x1="400" y1="228" x2="400" y2="108"/>
+  </g>
+
+</svg>

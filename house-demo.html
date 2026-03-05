@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Modular House Toggle</title>
+  <style>
+    :root {
+      --stroke: #111;
+      --thin: 2;
+      --thick: 3;
+      --dash: 6 6;
+      --accent: #4a90e2;
+    }
+
+    .outline {
+      fill: none;
+      stroke: var(--stroke);
+      stroke-width: var(--thin);
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .heavy {
+      stroke-width: var(--thick);
+    }
+
+    .faint {
+      opacity: .55;
+    }
+
+    .dashed {
+      stroke-dasharray: var(--dash);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    [id^="stage-"]:hover .outline {
+      stroke: #000;
+    }
+
+    body {
+      font: 14px/1.4 system-ui, Segoe UI, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+    }
+
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 12px
+    }
+
+    label {
+      display: block;
+      margin: 6px 0
+    }
+
+    svg {
+      max-width: 100%;
+      height: auto;
+      background: #fff
+    }
+
+    #stage-sketch .outline {
+      opacity: 1 !important;
+      stroke: red !important;
+      stroke-width: 3 !important;
+    }
+  </style>
+</head>
+
+<body>
+  <fieldset>
+    <legend>Stages</legend>
+    <label><input type="checkbox" data-layer="stage-ground" checked> Ground</label>
+    <label><input type="checkbox" data-layer="stage-foundation" checked> Foundation</label>
+    <label><input type="checkbox" data-layer="stage-framing" checked> Framing</label>
+    <label><input type="checkbox" data-layer="stage-walls" checked> Walls</label>
+    <label><input type="checkbox" data-layer="stage-windows" checked> Windows</label>
+    <label><input type="checkbox" data-layer="stage-roof-flat" checked> Roof (flat)</label>
+    <label><input type="checkbox" data-layer="stage-roof-gable"> Roof (gable placeholder)</label>
+    <label><input type="checkbox" data-layer="stage-landscaping" checked> Landscaping</label>
+    <hr>
+    <label><input type="checkbox" data-layer="stage-sketch"> Extra: Wireframe</label>
+  </fieldset>
+
+  <?xml version="1.0" encoding="UTF-8"?>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="100%" height="auto" role="img"
+    aria-label="Modular axonometric house drawing with gable roof">
+
+
+
+    <!--
+    Reference points reused from the previous version:
+
+    Ground diamond:
+      Gtop(400,240)  Gleft(200,340)  Gbot(400,440)  Gright(600,340)
+
+    House footprint (slab top):
+      Pfront(440,412) Pleft(280,320) Pback(400,228) Pright(560,320)
+
+    Wall-top corners:
+      Tfront(440,292) Tleft(280,200) Tback(400,108) Tright(560,200)
+  -->
+
+    <!-- ============ GROUND / SITE ============ -->
+    <g id="stage-ground">
+      <polygon class="outline faint" points="400,240 200,340 400,440 600,340" />
+    </g>
+
+    <!-- ============ FOUNDATION (slab) ============ -->
+    <g id="stage-foundation">
+      <polygon class="outline heavy" points="440,412 280,320 400,228 560,320" />
+      <g class="faint">
+        <line class="outline" x1="440" y1="412" x2="440" y2="422" />
+        <line class="outline" x1="280" y1="320" x2="280" y2="330" />
+        <line class="outline" x1="400" y1="228" x2="400" y2="238" />
+        <line class="outline" x1="560" y1="320" x2="560" y2="330" />
+        <polygon class="outline" points="440,422 280,330 400,238 560,330" />
+      </g>
+    </g>
+
+    <!-- ============ FRAMING (hints) ============ -->
+    <g id="stage-framing">
+      <line class="outline dashed" x1="480" y1="382" x2="480" y2="262" />
+      <line class="outline dashed" x1="519" y1="352" x2="519" y2="232" />
+      <line class="outline dashed" x1="333" y1="350" x2="333" y2="230" />
+      <line class="outline dashed" x1="386" y1="381" x2="386" y2="261" />
+    </g>
+
+    <!-- ============ WALLS ============ -->
+    <g id="stage-walls">
+      <!-- Left face -->
+      <polygon class="outline" points="280,320 440,412 440,292 280,200" />
+      <!-- Right face -->
+      <polygon class="outline" points="440,412 560,320 560,200 440,292" />
+      <!-- Back (faint) -->
+      <polygon class="outline faint" points="280,320 400,228 400,108 280,200" />
+    </g>
+
+    <!-- ============ WINDOWS ============ -->
+    <g id="stage-windows">
+      <!-- Right face window -->
+      <polygon class="outline" points="464,358 500,330 500,300 464,328" />
+      <!-- Left face window -->
+      <polygon class="outline" points="312,302 360,330 360,300 312,272" />
+    </g>
+
+    <!-- ============ ROOF ============ -->
+
+    <!-- Previously default flat roof now hidden -->
+    <g id="stage-roof-flat" class="hidden">
+      <polygon class="outline heavy" points="440,292 280,200 400,108 560,200" />
+    </g>
+
+    <!-- Gable roof (ON) -->
+    <g id="stage-roof-gable">
+      <!-- Ridge line (back-top to front-top) -->
+      <line class="outline heavy" x1="400" y1="108" x2="440" y2="292" />
+
+      <!-- Left roof plane (triangle): ridge → left eave -->
+      <polygon class="outline heavy" points="440,292 280,200 400,108" />
+
+      <!-- Right roof plane (triangle): ridge → right eave -->
+      <polygon class="outline heavy" points="440,292 400,108 560,200" />
+
+      <!-- Eave edges (light to emphasize overhang linework if desired) -->
+      <polyline class="outline faint" points="280,200 440,292 560,200" />
+      <polyline class="outline faint" points="400,108 440,292" />
+    </g>
+
+    <!-- ============ LANDSCAPING (optional) ============ -->
+    <g id="stage-landscaping">
+      <polygon class="outline faint" points="420,430 470,458 655,380 605,352" />
+      <g transform="translate(220,350)">
+        <circle class="outline" cx="0" cy="0" r="16" />
+        <line class="outline" x1="0" y1="16" x2="0" y2="26" />
+        <line class="outline" x1="-6" y1="26" x2="6" y2="26" />
+      </g>
+    </g>
+
+    <!-- ============ EXTRA: wireframe (off) ============ -->
+    <g id="stage-sketch" class="hidden">
+      <polygon class="outline faint" points="440,412 280,320 400,228 560,320" />
+      <polygon class="outline faint" points="440,292 280,200 400,108 560,200" />
+      <line class="outline faint" x1="440" y1="412" x2="440" y2="292" />
+      <line class="outline faint" x1="280" y1="320" x2="280" y2="200" />
+      <line class="outline faint" x1="560" y1="320" x2="560" y2="200" />
+      <line class="outline faint" x1="400" y1="228" x2="400" y2="108" />
+    </g>
+  </svg>
+  <!-- … -->
+  <script>
+    const svg = document.querySelector('svg');
+    document.querySelectorAll('input[type="checkbox"][data-layer]').forEach(cb => {
+      const id = cb.getAttribute('data-layer');
+      const g = () => svg.getElementById(id);
+      cb.addEventListener('change', () => {
+        const node = g();
+        if (!node) return;
+        node.style.display = cb.checked ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+
+</html>
